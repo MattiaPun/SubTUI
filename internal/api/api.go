@@ -1,4 +1,4 @@
-package main
+package api
 
 import (
 	"crypto/md5"
@@ -103,7 +103,7 @@ func subsonicGET(endpoint string, params map[string]string) (*SubsonicResponse, 
 	return &result, nil
 }
 
-func subsonicPing() error {
+func SubsonicPing() error {
 	data, err := subsonicGET("/ping", nil)
 	if err != nil {
 		return fmt.Errorf("network error: %v", err)
@@ -117,7 +117,7 @@ func subsonicPing() error {
 	return nil
 }
 
-func subsonicSearchArtist(query string, page int) ([]Artist, error) {
+func SubsonicSearchArtist(query string, page int) ([]Artist, error) {
 	params := map[string]string{
 		"query":        query,
 		"artistCount":  "20",
@@ -136,7 +136,7 @@ func subsonicSearchArtist(query string, page int) ([]Artist, error) {
 	return data.Response.SearchResult.Artists, nil
 }
 
-func subsonicSearchAlbum(query string, page int) ([]Album, error) {
+func SubsonicSearchAlbum(query string, page int) ([]Album, error) {
 	params := map[string]string{
 		"query":        query,
 		"artistCount":  "0",
@@ -155,7 +155,7 @@ func subsonicSearchAlbum(query string, page int) ([]Album, error) {
 	return data.Response.SearchResult.Albums, nil
 }
 
-func subsonicSearchSong(query string, page int) ([]Song, error) {
+func SubsonicSearchSong(query string, page int) ([]Song, error) {
 	params := map[string]string{
 		"query":        query,
 		"artistCount":  "0",
@@ -174,7 +174,7 @@ func subsonicSearchSong(query string, page int) ([]Song, error) {
 	return data.Response.SearchResult.Songs, nil
 }
 
-func subsonicGetPlaylistSongs(id string) ([]Song, error) {
+func SubsonicGetPlaylistSongs(id string) ([]Song, error) {
 	params := map[string]string{
 		"id": id,
 	}
@@ -187,7 +187,7 @@ func subsonicGetPlaylistSongs(id string) ([]Song, error) {
 	return data.Response.PlaylistDetail.Entries, nil
 }
 
-func subsonicGetPlaylists() ([]Playlist, error) {
+func SubsonicGetPlaylists() ([]Playlist, error) {
 	params := map[string]string{}
 
 	data, err := subsonicGET("/getPlaylists", params)
@@ -198,7 +198,7 @@ func subsonicGetPlaylists() ([]Playlist, error) {
 	return data.Response.PlaylistContainer.Playlists, nil
 }
 
-func subsonicStream(id string) string {
+func SubsonicStream(id string) string {
 	baseUrl := "https://" + AppConfig.Domain + "/rest/stream"
 
 	salt := generateSalt()
@@ -220,7 +220,7 @@ func subsonicStream(id string) string {
 	return fullUrl
 }
 
-func subsonicScrobble(id string) {
+func SubsonicScrobble(id string) {
 	time := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
 
 	params := map[string]string{

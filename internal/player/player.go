@@ -1,4 +1,4 @@
-package main
+package player
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"time"
 
+	"git.punjwani.pm/Mattia/DepthTUI/internal/api"
 	"github.com/gdrens/mpv"
 )
 
@@ -24,7 +25,7 @@ type PlayerStatus struct {
 	Volume   float64
 }
 
-func initPlayer() error {
+func InitPlayer() error {
 	socketPath := "/tmp/depthtui_mpv_socket"
 
 	exec.Command("pkill", "-f", socketPath).Run()
@@ -57,30 +58,30 @@ func initPlayer() error {
 	return nil
 }
 
-func shutdownPlayer() {
+func ShutdownPlayer() {
 	if mpvCmd != nil {
 		mpvCmd.Process.Kill()
 	}
 }
 
-func playSong(songID string) error {
+func PlaySong(songID string) error {
 	if mpvClient == nil {
 		return fmt.Errorf("player not initialized")
 	}
 
-	url := subsonicStream(songID)
+	url := api.SubsonicStream(songID)
 	if err := mpvClient.LoadFile(url, mpv.LoadFileModeReplace); err != nil {
 		return err
 	}
 
-	subsonicScrobble(songID)
+	api.SubsonicScrobble(songID)
 
 	mpvClient.SetProperty("pause", false)
 
 	return nil
 }
 
-func togglePause() {
+func TogglePause() {
 	if mpvClient == nil {
 		return
 	}
@@ -89,7 +90,7 @@ func togglePause() {
 	mpvClient.SetProperty("pause", !status)
 }
 
-func toggleLoop() {
+func ToggleLoop() {
 	if mpvClient == nil {
 		return
 	}
@@ -98,7 +99,7 @@ func toggleLoop() {
 	mpvClient.SetProperty("loop", !status)
 }
 
-func toggleShuffle() {
+func ToggleShuffle() {
 	if mpvClient == nil {
 		return
 	}
@@ -107,15 +108,15 @@ func toggleShuffle() {
 	mpvClient.SetProperty("shuffle", !status)
 }
 
-func back10Seconds() {
+func Back10Seconds() {
 	mpvClient.Seek(-10)
 }
 
-func forward10Seconds() {
+func Forward10Seconds() {
 	mpvClient.Seek(+10)
 }
 
-func getPlayerStatus() PlayerStatus {
+func GetPlayerStatus() PlayerStatus {
 	if mpvClient == nil {
 		return PlayerStatus{}
 	}

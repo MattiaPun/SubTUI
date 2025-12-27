@@ -1,4 +1,4 @@
-package main
+package api
 
 import (
 	"bufio"
@@ -10,7 +10,15 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func initConfig() error {
+type Config struct {
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+	Domain   string `yaml:"domain"`
+}
+
+var AppConfig Config
+
+func InitConfig() error {
 	home, _ := os.UserConfigDir()
 	appDir := filepath.Join(home, "DepthTUI")
 	configPath := filepath.Join(appDir, "config.yaml")

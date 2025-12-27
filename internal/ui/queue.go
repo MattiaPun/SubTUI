@@ -1,8 +1,10 @@
-package main
+package ui
 
 import (
 	"fmt"
 
+	"git.punjwani.pm/Mattia/DepthTUI/internal/api"
+	"git.punjwani.pm/Mattia/DepthTUI/internal/player"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -21,7 +23,7 @@ func (m *model) playQueueIndex(index int) tea.Cmd {
 	song := m.queue[m.queueIndex]
 
 	return func() tea.Msg {
-		err := playSong(song.ID)
+		err := player.PlaySong(song.ID)
 		if err != nil {
 			return errMsg{err}
 		}
@@ -56,7 +58,7 @@ func (m *model) playPrev() tea.Cmd {
 	return m.playQueueIndex(newIndex)
 }
 
-func (m *model) setQueue(songs []Song, startIndex int) tea.Cmd {
+func (m *model) setQueue(songs []api.Song, startIndex int) tea.Cmd {
 	m.queue = songs
 	return m.playQueueIndex(startIndex)
 }
