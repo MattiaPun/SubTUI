@@ -120,7 +120,6 @@ func SubsonicPing() error {
 		return fmt.Errorf("authentication failed: server returned status %s", data.Response.Status)
 	}
 
-	fmt.Println("Connection successful! Welcome,", AppConfig.Username)
 	return nil
 }
 

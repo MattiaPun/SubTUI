@@ -18,6 +18,7 @@ const (
 const (
 	viewList = iota
 	viewQueue
+	viewLogin = 99
 )
 
 const (
@@ -41,6 +42,23 @@ var (
 	activeBorderStyle = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
 				BorderForeground(highlight)
+
+	loginBoxStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(highlight).
+			Padding(1, 4).
+			Align(lipgloss.Center)
+
+	// The "Welcome" header
+	loginHeaderStyle = lipgloss.NewStyle().
+				Foreground(special).
+				Bold(true).
+				MarginBottom(1)
+
+	// The footer instruction
+	loginHelpStyle = lipgloss.NewStyle().
+			Foreground(subtle).
+			MarginTop(2)
 )
 
 // --- MODEL ---
@@ -78,6 +96,10 @@ type model struct {
 
 	// Stars
 	starredMap map[string]bool
+
+	// Login State
+	loginInputs []textinput.Model
+	loginFocus  int
 }
 
 type songsResultMsg struct {
@@ -113,16 +135,22 @@ func InitialModel() model {
 	ti.CharLimit = 156
 	ti.Width = 50
 
+	startMode := viewList
+	if api.AppConfig.Username == "" || api.AppConfig.Domain == "" {
+		startMode = viewLogin
+	}
+
 	return model{
 		textInput:        ti,
 		songs:            []api.Song{},
 		focus:            focusSearch,
 		cursorMain:       0,
 		cursorSide:       0,
-		viewMode:         viewList,
+		viewMode:         startMode,
 		filterMode:       filterSongs,
 		starredMap:       make(map[string]bool),
 		lastPlayedSongID: "",
+		loginInputs:      initialLoginInputs(),
 	}
 }
 
@@ -133,4 +161,27 @@ func (m model) Init() tea.Cmd {
 		syncPlayerCmd(),
 		getStarredCmd(),
 	)
+}
+
+func initialLoginInputs() []textinput.Model {
+	inputs := make([]textinput.Model, 3)
+
+	inputs[0] = textinput.New()
+	inputs[0].Placeholder = "music.example.com"
+	inputs[0].Width = 30
+	inputs[0].Focus()
+	inputs[0].Prompt = "Domain:   "
+
+	inputs[1] = textinput.New()
+	inputs[1].Placeholder = "username"
+	inputs[1].Width = 30
+	inputs[1].Prompt = "Username: "
+
+	inputs[2] = textinput.New()
+	inputs[2].Placeholder = "password"
+	inputs[2].EchoMode = textinput.EchoPassword
+	inputs[2].Width = 30
+	inputs[2].Prompt = "Password: "
+
+	return inputs
 }

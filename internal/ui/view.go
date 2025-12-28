@@ -9,6 +9,10 @@ import (
 )
 
 func (m model) View() string {
+	if m.viewMode == viewLogin {
+		return loginView(m)
+	}
+
 	// SIZING
 	searchHeight := int(float64(m.height) * 0.035)
 	mainHeight := int(float64(m.height) * 0.75)
@@ -91,6 +95,30 @@ func truncate(s string, w int) string {
 		return s[:w-1] + "…"
 	}
 	return s
+}
+
+func loginView(m model) string {
+	content := lipgloss.JoinVertical(lipgloss.Center,
+		loginHeaderStyle.Render("Welcome to DepthTUI"),
+		"", // Spacer
+		m.loginInputs[0].View(),
+		m.loginInputs[1].View(),
+		m.loginInputs[2].View(),
+		"", // Spacer
+		loginHelpStyle.Render("[ Press Enter to Login ]"),
+	)
+
+	box := loginBoxStyle.Render(content)
+
+	return lipgloss.Place(
+		m.width,
+		m.height,
+		lipgloss.Center,
+		lipgloss.Center,
+		box,
+		lipgloss.WithWhitespaceChars(" "),
+		lipgloss.WithWhitespaceForeground(lipgloss.NoColor{}),
+	)
 }
 
 func headerContent(m model) string {

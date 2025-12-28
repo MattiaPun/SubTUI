@@ -106,3 +106,13 @@ func toggleStarCmd(id string, isCurrentlyStarred bool) tea.Cmd {
 		return nil
 	}
 }
+
+func checkLoginCmd() tea.Cmd {
+	return func() tea.Msg {
+		if err := api.SubsonicPing(); err != nil {
+			return errMsg{err}
+		}
+
+		return nil
+	}
+}

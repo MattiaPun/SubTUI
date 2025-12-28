@@ -19,10 +19,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 
+		if m.viewMode == viewLogin {
+			return m, nil
+		}
+
 	// Key Presses
 	case tea.KeyMsg:
+
+		if msg.String() == "ctrl+c" {
+			return m, tea.Quit
+		}
+
+		if m.viewMode == viewLogin {
+			return login(m, msg)
+		}
+
 		switch msg.String() {
-		case "ctrl+c", "q":
+		case "q":
 			return quit(m, msg)
 
 		case "tab":
@@ -480,4 +493,68 @@ func mediaToggleFavorite(m model, msg tea.Msg) (model, tea.Cmd) {
 	}
 
 	return m, toggleStarCmd(id, isStarred)
+}
+
+func (m *model) updateLoginInputs(msg tea.Msg) tea.Cmd {
+	cmds := make([]tea.Cmd, len(m.loginInputs))
+	for i := range m.loginInputs {
+		m.loginInputs[i], cmds[i] = m.loginInputs[i].Update(msg)
+	}
+	return tea.Batch(cmds...)
+}
+
+func login(m model, msg tea.Msg) (model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "tab", "shift+tab", "enter", "up", "down":
+			s := msg.String()
+
+			// Cycle focus logic
+			if s == "enter" && m.loginFocus == len(m.loginInputs)-1 {
+				m.loading = true
+
+				api.AppConfig.Domain = m.loginInputs[0].Value()
+				api.AppConfig.Username = m.loginInputs[1].Value()
+				api.AppConfig.Password = m.loginInputs[2].Value()
+
+				if err := api.SaveConfig(); err != nil {
+					m.err = err
+					return m, nil
+				}
+
+				player.InitPlayer()
+				m.viewMode = viewList
+				m.focus = focusMain
+
+				return m, tea.Batch(
+					checkLoginCmd(),
+					getPlaylists(),
+				)
+			}
+
+			if s == "up" || s == "shift+tab" {
+				m.loginFocus--
+			} else {
+				m.loginFocus++
+			}
+
+			if m.loginFocus > len(m.loginInputs)-1 {
+				m.loginFocus = 0
+			} else if m.loginFocus < 0 {
+				m.loginFocus = len(m.loginInputs) - 1
+			}
+
+			for i := 0; i <= len(m.loginInputs)-1; i++ {
+				if i == m.loginFocus {
+					m.loginInputs[i].Focus()
+				} else {
+					m.loginInputs[i].Blur()
+				}
+			}
+			return m, nil
+		}
+	}
+
+	return m, m.updateLoginInputs(msg)
 }

@@ -11,19 +11,15 @@ import (
 )
 
 func main() {
-	if err := api.InitConfig(); err != nil {
-		fmt.Fprintf(os.Stderr, "Config Error: %v\n", err)
-		os.Exit(1)
+	_ = api.LoadConfig()
+
+	if api.AppConfig.Password != "" {
+		if err := player.InitPlayer(); err != nil {
+			fmt.Printf("Failed to start player: %v\n", err)
+		}
+
 	}
 
-	if err := api.SubsonicPing(); err != nil {
-		fmt.Fprintf(os.Stderr, "Auth Error: %v\n", err)
-		os.Exit(1)
-	}
-
-	if err := player.InitPlayer(); err != nil {
-		panic(err)
-	}
 	defer player.ShutdownPlayer()
 
 	p := tea.NewProgram(ui.InitialModel(), tea.WithAltScreen())
