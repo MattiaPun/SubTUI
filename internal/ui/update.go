@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"time"
 
@@ -125,6 +126,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				title := "DepthTUI"
 				description := fmt.Sprintf("Playing %s - %s", currentSong.Title, currentSong.Artist)
 				beeep.Notify(title, description, "")
+			}
+		}
+
+		if len(m.queue) > 0 && m.queueIndex >= 0 && !m.scrobbled {
+			currentSong := m.queue[m.queueIndex]
+
+			pos := m.playerStatus.Current
+			dur := m.playerStatus.Duration
+
+			if dur > 0 {
+				target := math.Min(dur/2, 240)
+
+				if pos >= target {
+					m.scrobbled = true
+
+					go api.SubsonicScrobble(currentSong.ID, true)
+				}
 			}
 		}
 

@@ -74,7 +74,7 @@ func PlaySong(songID string) error {
 		return err
 	}
 
-	api.SubsonicScrobble(songID)
+	api.SubsonicScrobble(songID, false)
 
 	mpvClient.SetProperty("pause", false)
 

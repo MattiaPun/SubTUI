@@ -281,13 +281,13 @@ func SubsonicStream(id string) string {
 	return fullUrl
 }
 
-func SubsonicScrobble(id string) {
-	time := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+func SubsonicScrobble(id string, submission bool) {
+	time := strconv.FormatInt(time.Now().UTC().UnixMilli(), 10)
 
 	params := map[string]string{
 		"id":         id,
 		"time":       time,
-		"submission": "0",
+		"submission": strconv.FormatBool(submission),
 	}
 
 	subsonicGET("/scrobble", params)

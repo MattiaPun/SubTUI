@@ -95,6 +95,7 @@ type model struct {
 	loading          bool
 	playlistAmount   int
 	lastPlayedSongID string
+	scrobbled        bool
 
 	// Queue System
 	queue      []api.Song
