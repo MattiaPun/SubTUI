@@ -27,6 +27,12 @@ const (
 	filterArtist
 )
 
+const (
+	LoopNone = 0
+	LoopAll  = 1
+	LoopOne  = 2
+)
+
 var (
 	// Colors
 	subtle    = lipgloss.AdaptiveColor{Light: "#D9DCCF", Dark: "#383838"}
@@ -93,6 +99,7 @@ type model struct {
 	// Queue System
 	queue      []api.Song
 	queueIndex int
+	loopMode   int
 
 	// Stars
 	starredMap map[string]bool

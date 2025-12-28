@@ -2,6 +2,8 @@ package ui
 
 import (
 	"fmt"
+	"math/rand"
+	"time"
 
 	"git.punjwani.pm/Mattia/DepthTUI/internal/api"
 	"git.punjwani.pm/Mattia/DepthTUI/internal/player"
@@ -95,6 +97,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case ";":
 			m = mediaSeekRewind(m)
 
+		case "S":
+			m = mediaShuffle(m)
+
+		case "L":
+			m = mediaToggleLoop(m)
+
 		case "F":
 			return mediaToggleFavorite(m, msg)
 		}
@@ -124,6 +132,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.playerStatus.Duration > 0 &&
 			m.playerStatus.Current >= m.playerStatus.Duration-1 &&
 			!m.playerStatus.Paused {
+
+			switch m.loopMode {
+			case LoopNone:
+				//
+			case LoopAll:
+				m.queueIndex = -1
+			case LoopOne:
+				m.queueIndex = m.queueIndex - 1
+
+			}
 
 			return m, tea.Batch(
 				m.playNext(),
@@ -453,6 +471,51 @@ func mediaSeekForward(m model) model {
 func mediaSeekRewind(m model) model {
 	if m.focus != focusSearch {
 		player.Forward10Seconds()
+	}
+
+	return m
+}
+
+func mediaShuffle(m model) model {
+	if m.focus != focusSearch {
+		if len(m.queue) < 2 {
+			return m
+		}
+
+		newQueue := make([]api.Song, len(m.queue))
+		copy(newQueue, m.queue)
+		m.queue = newQueue
+
+		currentSongID := ""
+		if m.queueIndex >= 0 && m.queueIndex < len(m.queue) {
+			currentSongID = m.queue[m.queueIndex].ID
+		}
+
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		r.Shuffle(len(m.queue), func(i, j int) {
+			m.queue[i], m.queue[j] = m.queue[j], m.queue[i]
+		})
+
+		if currentSongID != "" {
+			for i, song := range m.queue {
+				if song.ID == currentSongID {
+					// Swap the song at i with 0 to set current song to first
+					m.queue[0], m.queue[i] = m.queue[i], m.queue[0]
+					m.queueIndex = 0
+					break
+				}
+			}
+		} else {
+			m.queueIndex = 0
+		}
+	}
+
+	return m
+}
+
+func mediaToggleLoop(m model) model {
+	if m.focus != focusSearch {
+		m.loopMode = (m.loopMode + 1) % 3
 	}
 
 	return m

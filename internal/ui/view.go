@@ -430,13 +430,30 @@ func footerContent(m model) string {
 	currStr := formatDuration(int(m.playerStatus.Current))
 	durStr := formatDuration(int(m.playerStatus.Duration))
 
-	rowTitle := lipgloss.NewStyle().Bold(true).Foreground(highlight).Render("  " + title)
-	rowArtist := lipgloss.NewStyle().Foreground(subtle).Render("  " + artist)
+	topRow := lipgloss.NewStyle().Bold(true).Foreground(highlight).Render("  " + title)
+	bottowRowArtistAlbum := lipgloss.NewStyle().Foreground(subtle).Render("  " + artist)
+
+	loopText := ""
+	if m.loopMode == 1 {
+		loopText = "Loop all"
+	} else if m.loopMode == 2 {
+		loopText = "Loop one"
+	}
+
+	gapWidth := m.width - lipgloss.Width(bottowRowArtistAlbum) - 2
+
+	if gapWidth < 0 {
+		gapWidth = 0
+	}
+
+	bottomRowLoop := lipgloss.NewStyle().Width(gapWidth).Align(lipgloss.Right).Foreground(subtle).Render(loopText)
+	bottomRow := lipgloss.JoinHorizontal(lipgloss.Top, bottowRowArtistAlbum, bottomRowLoop)
+
 	rowProgress := fmt.Sprintf("  %s %s %s",
 		currStr,
 		lipgloss.NewStyle().Foreground(special).Render("["+barStr+"]"),
 		durStr,
 	)
 
-	return fmt.Sprintf("%s\n%s\n\n%s", rowTitle, rowArtist, rowProgress)
+	return fmt.Sprintf("%s\n%s\n\n%s", topRow, bottomRow, rowProgress)
 }
