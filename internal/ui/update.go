@@ -258,6 +258,7 @@ func quit(m model, msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func focusSearchBar(m model) model {
 	m.focus = focusSearch
+	m.textInput.SetValue("")
 	m.textInput.Focus()
 	return m
 }
