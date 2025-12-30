@@ -39,6 +39,8 @@ const (
 	LoopOne  = 2
 )
 
+var albumTypes = []string{"Random", "Favorites", "Recently Added", "Recently Played", "Most Played"}
+
 var (
 	// Colors
 	subtle    = lipgloss.AdaptiveColor{Light: "#D9DCCF", Dark: "#6b6b6bff"}

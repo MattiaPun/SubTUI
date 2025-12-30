@@ -339,10 +339,32 @@ func enter(m model) (tea.Model, tea.Cmd) {
 			}
 		}
 	case focusSidebar:
+		albumOffset := len(albumTypes)
+
 		m.loading = true
 		m.focus = focusMain
-		m.displayMode = displaySongs
-		return m, getPlaylistSongs((m.playlists[m.cursorSide]).ID)
+
+		if m.cursorSide < albumOffset {
+			m.displayMode = displayAlbums
+			switch m.cursorSide {
+			case 0:
+				return m, getAlbumList("random")
+			case 1:
+				return m, getAlbumList("starred")
+			case 2:
+				return m, getAlbumList("newest")
+			case 3:
+				return m, getAlbumList("recent")
+			case 4:
+				return m, getAlbumList("frequent")
+			}
+
+		} else {
+			m.displayMode = displaySongs
+			return m, getPlaylistSongs((m.playlists[m.cursorSide-albumOffset]).ID) // - because of the Album offset
+
+		}
+
 	}
 
 	return m, nil
@@ -392,6 +414,7 @@ func navigateDown(m model) model {
 		listLen = len(m.artists)
 	}
 
+	albumOffset := len(albumTypes)
 	if m.focus == focusMain && m.cursorMain < listLen-1 {
 		m.cursorMain++
 
@@ -400,7 +423,7 @@ func navigateDown(m model) model {
 		if m.cursorMain >= m.mainOffset+visibleRows {
 			m.mainOffset++
 		}
-	} else if m.focus == focusSidebar && m.cursorSide < len(m.playlists)-1 {
+	} else if m.focus == focusSidebar && m.cursorSide < len(m.playlists)+albumOffset-1 { // + because of the Album offset
 		m.cursorSide++
 	}
 

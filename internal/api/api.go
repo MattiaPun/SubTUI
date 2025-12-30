@@ -26,6 +26,9 @@ type SubsonicResponse struct {
 		Album struct {
 			Songs []Song `json:"song"`
 		} `json:"album"`
+		AlbumList struct {
+			Albums []Album `json:"album"`
+		} `json:"albumList"`
 		Artist struct {
 			Albums []Album `json:"album"`
 		} `json:"artist"`
@@ -216,6 +219,20 @@ func SubsonicGetAlbum(id string) ([]Song, error) {
 	}
 
 	return data.Response.Album.Songs, nil
+}
+
+func SubsonicGetAlbumList(searchType string) ([]Album, error) {
+	params := map[string]string{
+		"type": searchType,
+		"size": "100",
+	}
+
+	data, err := subsonicGET("/getAlbumList", params)
+	if err != nil {
+		return nil, err
+	}
+
+	return data.Response.AlbumList.Albums, nil
 }
 
 func SubsonicGetArtist(id string) ([]Album, error) {

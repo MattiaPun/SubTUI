@@ -184,28 +184,44 @@ func headerContent(m model) string {
 }
 
 func sidebarContent(m model, mainHeight int, sidebarWidth int) string {
-	sidebarContent := lipgloss.NewStyle().Bold(true).Render("  PLAYLISTS") + "\n\n"
-
-	for i, item := range m.playlists {
-
+	sidebarContent := lipgloss.NewStyle().Bold(true).Render("  ALBUMS") + "\n\n"
+	for i, item := range albumTypes {
 		if i >= mainHeight-3 {
 			break
 		}
 
 		cursor := "  "
-		if m.cursorSide == i && m.focus == focusSidebar {
-			cursor = "> "
-		}
-
 		style := lipgloss.NewStyle()
 		if m.cursorSide == i && m.focus == focusSidebar {
 			style = style.Foreground(highlight).Bold(true)
+			cursor = "> "
 		}
 
-		line := cursor + truncate(item.Name, sidebarWidth-4)
+		line := cursor + truncate(item, sidebarWidth-4)
 		sidebarContent += style.Render(line) + "\n"
 	}
 
+	albumOffset := len(albumTypes)
+	if mainHeight-2-albumOffset > 5 { // -2 (album and \n) - albumoffset
+		sidebarContent += lipgloss.NewStyle().Bold(true).Render("\n\n  PLAYLISTS") + "\n\n"
+		for i, item := range m.playlists {
+
+			playlistMaxHeight := mainHeight - 2 - albumOffset - 4 - 2 // Adding 2 as a margin
+			if playlistMaxHeight < i {
+				break
+			}
+
+			cursor := "  "
+			style := lipgloss.NewStyle()
+			if m.cursorSide == i+albumOffset && m.focus == focusSidebar {
+				style = style.Foreground(highlight).Bold(true)
+				cursor = "> "
+			}
+
+			line := cursor + truncate(item.Name, sidebarWidth-4)
+			sidebarContent += style.Render(line) + "\n"
+		}
+	}
 	return sidebarContent
 }
 
