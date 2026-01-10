@@ -773,6 +773,7 @@ func mediaDeleteSongFromQueue(m model) model {
 func mediaDeleteQueue(m model) model {
 	if m.focus == focusMain {
 		m.queue = nil
+		m.queueIndex = 0
 	}
 
 	return m
