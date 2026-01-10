@@ -51,6 +51,29 @@ func searchCmd(query string, mode int) tea.Cmd {
 	}
 }
 
+func getSelectedSongs(m model) []api.Song {
+	if m.focus == focusMain {
+		switch m.viewMode {
+		case viewList:
+			if m.displayMode == displaySongs && len(m.songs) > 0 {
+				return []api.Song{m.songs[m.cursorMain]}
+			} else if m.displayMode == displayAlbums || m.displayMode == displayArtist {
+				songs, err := api.SubsonicGetAlbum(m.albums[m.cursorMain].ID)
+				if err != nil {
+					return []api.Song{}
+				}
+				return songs
+			}
+		case viewQueue:
+			if len(m.queue) > 0 {
+				return []api.Song{m.queue[m.cursorMain]}
+			}
+		}
+	}
+
+	return []api.Song{}
+}
+
 func getAlbumSongs(albumID string) tea.Cmd {
 	return func() tea.Msg {
 		songs, err := api.SubsonicGetAlbum(albumID)
