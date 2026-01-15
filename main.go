@@ -39,7 +39,7 @@ func main() {
 		log.Printf("Version: %s | Commit: %s", version, commit)
 		log.Printf("Config Loaded: %v", api.AppConfig.URL)
 
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 	} else {
 		log.SetOutput(io.Discard)
 	}
@@ -60,6 +60,11 @@ func main() {
 	if instance != nil {
 		defer instance.Close()
 		go p.Send(ui.SetDBusMsg{Instance: instance})
+	}
+
+	discordIns := integration.InitDiscord()
+	if discordIns != nil {
+		go p.Send(ui.SetDiscordMsg{Instance: discordIns})
 	}
 
 	if _, err := p.Run(); err != nil {

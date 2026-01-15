@@ -106,9 +106,12 @@ type model struct {
 	loading          bool
 	lastPlayedSongID string
 	scrobbled        bool
-	dbusInstance     *integration.Instance
 	loginErr         string
 	notify           bool
+
+	// Integrations
+	dbusInstance    *integration.Instance
+	discordInstance *integration.DiscordInstance
 
 	// Queue System
 	queue      []api.Song
@@ -124,6 +127,19 @@ type model struct {
 
 	// Input State
 	lastKey string
+
+	// Help Overlay
+	showHelp  bool
+	helpModel HelpModel
+}
+
+type HelpModel struct {
+	Width  int
+	Height int
+}
+
+type BackgroundWrapper struct {
+	RenderedView string
 }
 
 type loginResultMsg struct {
@@ -166,6 +182,10 @@ type SetDBusMsg struct {
 	Instance *integration.Instance
 }
 
+type SetDiscordMsg struct {
+	Instance *integration.DiscordInstance
+}
+
 func InitialModel() model {
 	ti := textinput.New()
 	ti.Placeholder = "Search songs..."
@@ -191,6 +211,8 @@ func InitialModel() model {
 		lastPlayedSongID: "",
 		loginInputs:      initialLoginInputs(),
 		lastKey:          "",
+		showHelp:         false,
+		helpModel:        NewHelpModel(),
 		notify:           true,
 	}
 }

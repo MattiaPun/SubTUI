@@ -40,6 +40,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return login(m, msg)
 		}
 
+		if msg.String() == "?" {
+			m.showHelp = !m.showHelp
+			return m, nil
+		} else if m.showHelp {
+			return m, nil
+		}
+
 		if (msg.String() == "g" || m.lastKey == "g") && (m.focus == focusMain || m.focus == focusSidebar) {
 			switch msg.String() {
 			case "g":
@@ -206,9 +213,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			if currentSong.ID != m.lastPlayedSongID {
 				m.lastPlayedSongID = currentSong.ID
-
 				m.scrobbled = false
 
+				// Setup metadata
+				metadata := integration.Metadata{
+					Title:    currentSong.Title,
+					Artist:   currentSong.Artist,
+					Album:    currentSong.Album,
+					Duration: float64(currentSong.Duration), // Cast int to float64
+					ImageURL: api.SubsonicCoverArtUrl(currentSong.ID, 500),
+				}
+
+				// System notification
 				if m.notify {
 					go func() {
 						artBytes, err := api.SubsonicCoverArt(currentSong.ID)
@@ -222,6 +238,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							_ = beeep.Notify(title, description, artBytes)
 						}
 					}()
+				}
+
+				// MRPIS Update
+				if m.dbusInstance != nil {
+					m.dbusInstance.UpdateMetadata(metadata)
+				}
+
+				// Discord Update
+				if m.discordInstance != nil {
+					m.discordInstance.UpdateActivity(metadata)
 				}
 			}
 		}
@@ -244,16 +270,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		m.playerStatus = player.PlayerStatus(msg)
-
-		if m.dbusInstance != nil && m.playerStatus.Title != "" && m.playerStatus.Title != "<nil>" && !strings.Contains(m.playerStatus.Title, "stream?c=SubTUI") && len(m.queue) != 0 {
-			m.dbusInstance.UpdateMetadata(integration.Metadata{
-				Title:    m.playerStatus.Title,
-				Artist:   m.playerStatus.Artist,
-				Album:    m.playerStatus.Album,
-				Duration: m.playerStatus.Duration,
-				ImageURL: api.SubsonicCoverArtUrl(m.queue[m.queueIndex].ID, 500),
-			})
-		}
 
 		if ((m.playerStatus.Duration > 0 && m.playerStatus.Current >= m.playerStatus.Duration-0.5) ||
 			(m.playerStatus.Title == "<nil>" && m.queueIndex != len(m.queue)-1)) &&
@@ -352,6 +368,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case integration.PreviousSongMsg:
 		return mediaSongPrev(m, msg)
+
+	case SetDiscordMsg:
+		m.discordInstance = msg.Instance
+		return m, nil
 
 	}
 

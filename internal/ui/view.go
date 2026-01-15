@@ -7,9 +7,24 @@ import (
 	"github.com/MattiaPun/SubTUI/internal/api"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mattn/go-runewidth"
+
+	overlay "github.com/rmhubbert/bubbletea-overlay"
 )
 
 func (m model) View() string {
+	base := m.BaseView()
+
+	if !m.showHelp {
+		return base
+	}
+
+	bgModel := BackgroundWrapper{RenderedView: base}
+	overlayView := overlay.New(m.helpModel, bgModel, overlay.Center, overlay.Center, 0, 0)
+
+	return overlayView.View()
+}
+
+func (m model) BaseView() string {
 	if m.viewMode == viewLogin {
 		return loginView(m)
 	}
@@ -540,4 +555,97 @@ func footerContent(m model) string {
 		Render(rawProgress)
 
 	return fmt.Sprintf("%s\n%s\n\n%s", topRow, bottomRow, rowProgress)
+}
+
+func helpViewContent() string {
+	keyStyle := lipgloss.NewStyle().Foreground(special).Bold(true)
+	descStyle := lipgloss.NewStyle().Foreground(subtle)
+	titleStyle := lipgloss.NewStyle().Foreground(highlight).Bold(true).MarginBottom(1)
+	colStyle := lipgloss.NewStyle().MarginRight(4)
+	sectionSpacer := lipgloss.NewStyle().MarginBottom(2)
+
+	// Helper to format lines
+	line := func(key, desc string) string {
+		return fmt.Sprintf("%-15s %s", keyStyle.Render(key), descStyle.Render(desc))
+	}
+
+	// Helper to render a titled section
+	section := func(title string, lines ...string) string {
+		content := lipgloss.JoinVertical(lipgloss.Left, lines...)
+		return lipgloss.JoinVertical(lipgloss.Left, titleStyle.Render(title), content)
+	}
+
+	globalKeybinds := section("NAVIGATION",
+		line("Tab", "Cycle focus"),
+		line("Shift+Tab", "Cycle focus"),
+		line("k / Up", "Move Up"),
+		line("j / Down", "Move Down"),
+		line("Enter", "Select"),
+		line("/", "Search bar"),
+		line("q / Ctrl+C", "Quit"),
+	)
+
+	searchKeybinds := section("SEARCH",
+		line("Ctrl+n", "Filter Next"),
+		line("Ctrl+b", "Filter Prev"),
+	)
+
+	libraryKeybinds := section("LIBRARY",
+		line("gg", "Scroll Top"),
+		line("G", "Scroll Bottom"),
+		line("ga", "Go to Album"),
+		line("gr", "Go to Artist"),
+	)
+
+	mediaKeybinds := section("MEDIA",
+		line("p", "Play/Pause"),
+		line("n", "Next Song"),
+		line("b", "Prev Song"),
+		line("S", "Shuffle"),
+		line("L", "Loop Mode"),
+		line("w", "Restart Song"),
+		line(",", "Rewind 10s"),
+		line(";", "Forward 10s"),
+	)
+
+	starredKeybinds := section("FAVORITES",
+		line("f", "Like/Unlike"),
+		line("F", "View Liked"),
+	)
+
+	queueKeybinds := section("QUEUE",
+		line("Q", "Toggle View"),
+		line("N", "Add Next"),
+		line("a", "Add Last"),
+		line("d", "Remove"),
+		line("D", "Clear All"),
+		line("K", "Move Up"),
+		line("J", "Move Down"),
+	)
+
+	columnLeft := lipgloss.JoinVertical(lipgloss.Left,
+		sectionSpacer.Render(globalKeybinds),
+		" ", // spacer
+		libraryKeybinds,
+	)
+
+	columnMiddle := lipgloss.JoinVertical(lipgloss.Left,
+		sectionSpacer.Render(mediaKeybinds),
+		starredKeybinds,
+	)
+
+	columnRight := lipgloss.JoinVertical(lipgloss.Left,
+		sectionSpacer.Render(queueKeybinds),
+		" ", // spacer
+		searchKeybinds,
+	)
+
+	content := lipgloss.JoinHorizontal(lipgloss.Top,
+		colStyle.Render(columnLeft),
+		colStyle.Render(columnMiddle),
+		columnRight,
+	)
+
+	return activeBorderStyle.Padding(1, 3).Render(content)
+
 }

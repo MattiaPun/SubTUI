@@ -5,6 +5,7 @@ type Metadata struct {
 	Artist   string
 	Album    string
 	Duration float64
+	Position float64
 	ImageURL string
 }
 

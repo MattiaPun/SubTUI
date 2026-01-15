@@ -1,6 +1,6 @@
 # SubTUI
 
-**SubTUI** is a lightweight TUI music player for Subsonic-compatible servers (Navidrome, Gonic, Airsonic, etc.) built with Go and the Bubble Tea framework. It uses `mpv` as the underlying audio engine supporting multiple audio formats. It supports scrobbeling ensuring your play counts are updated on your server and on any external services configured like Last.FM or ListenBrainz
+**SubTUI** is a lightweight TUI music player for Subsonic-compatible servers (Navidrome, Gonic, Airsonic, etc.) built with Go and the Bubble Tea framework. It uses `mpv` as the underlying audio engine supporting multiple audio formats. It supports scrobbling ensuring your play counts are updated on your server and on any external services configured like Last.FM or ListenBrainz. It also features Discord Rich Presence integration, displaying your current track and status on your profile.
 
 ![Main View](./screenshots/main_view.png)
 
@@ -22,7 +22,7 @@ You can download pre-compiled binaries for Linux and macOS directly from the [Re
 
 You can install SubTUI directly from the AUR: `yay -S subtui-git`
 
-## GoLang Toolchain
+### GoLang Toolchain
 
 You can install SubTUI directly using GoLang: `go install github.com/MattiaPun/SubTUI@latest`
 
@@ -49,6 +49,7 @@ go build .
 | `Tab`           | Cycle focus forward (Search → Sidebar → Main → Footer) |
 | `Shift` + `Tab` | Cycle focus backward                                   |
 | `Backspace`     | Back                                                   |
+| `?`             | Toggle help menu                                       |
 | `j` / `Down`    | Move selection down                                    |
 | `k` / `Up`      | Move selection up                                      |
 | `q`             | Quit application (except during Login)                 |
@@ -129,6 +130,7 @@ On the first launch, SubTUI will ask for your server credentials:
 ## Contributing
 
 Contributions are welcome!
+Please make use of [Convention Commit Messages](https://www.conventionalcommits.org/en/v1.0.0/)
 
 1. Fork the Project
 2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
