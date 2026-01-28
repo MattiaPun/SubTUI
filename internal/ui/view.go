@@ -52,7 +52,9 @@ func (m model) BaseView() string {
 		footerHeight = 5
 	}
 
-	mainHeight := m.height - headerHeight - footerHeight - (3 * 2) // 3 sections with each 2 borders (top and bottom)
+	quickHelpHeight := 1
+
+	mainHeight := m.height - headerHeight - footerHeight - quickHelpHeight - (4 * 2) // 4 sections with each 2 borders (top and bottom)
 	if mainHeight < 0 {
 		mainHeight = 0
 	}
@@ -118,11 +120,17 @@ func (m model) BaseView() string {
 		Height(footerHeight).
 		Render(footerContent(m))
 
+	quickHelpView := borderStyle.
+		Width(m.width - 2).
+		Height(quickHelpHeight).
+		Render(quickHelpContent(m))
+
 	// COMBINE ALL VERTICALLY
 	return lipgloss.JoinVertical(lipgloss.Left,
 		topView,
 		centerView,
 		footerView,
+		quickHelpView,
 	)
 }
 
@@ -491,6 +499,12 @@ func mainArtistContent(m model, mainWidth int, mainHeight int) string {
 	}
 
 	return mainContent
+}
+
+func quickHelpContent(m model) string {
+	help := lipgloss.NewStyle().Bold(true).Foreground(highlight).Render("  Shortcut Menu: ?  Play/Pause: p  Next: n  Prev: b  Toggle Queue View: Q")
+
+	return LimitString(help, m.width+10)
 }
 
 func footerContent(m model) string {

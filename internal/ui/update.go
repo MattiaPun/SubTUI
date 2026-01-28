@@ -67,6 +67,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
+		if m.showHelp {
+			switch msg.String() {
+			case "q", "esc", "?":
+				m.showHelp = false
+				return m, nil
+			}
+			return m, nil
+		}
+
 		if msg.String() == "?" {
 			m.showHelp = !m.showHelp
 			return m, nil
