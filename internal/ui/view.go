@@ -12,6 +12,10 @@ import (
 )
 
 func (m model) View() string {
+	if m.width < 50 || m.height < 25 {
+		return viewToSmallContent(m)
+	}
+
 	base := m.BaseView()
 
 	if m.showPlaylists {
@@ -742,4 +746,20 @@ func addToPlaylistContent(m model) string {
 	}
 
 	return playlistContent
+}
+
+func viewToSmallContent(m model) string {
+	content := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		Padding(0, 1).
+		Align(lipgloss.Center).
+		Render("Viewport too small")
+
+	return lipgloss.Place(
+		m.width,
+		m.height,
+		lipgloss.Center,
+		lipgloss.Center,
+		content,
+	)
 }
