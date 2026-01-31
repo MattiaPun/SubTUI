@@ -401,7 +401,7 @@ func navigateBottom(m model) model {
 			mainHeight = 0
 		}
 
-		visibleRows := mainHeight - 5 // Conservative estimate for headers
+		visibleRows := mainHeight - 6 // Conservative estimate for headers
 		if visibleRows < 1 {
 			visibleRows = 1
 		}
@@ -468,7 +468,7 @@ func navigateDown(m model) model {
 			mainHeight = 0
 		}
 
-		visibleRows := mainHeight - 5 // Conservative estimate for headers
+		visibleRows := mainHeight - 6 // Conservative estimate for headers
 		if visibleRows < 1 {
 			visibleRows = 1
 		}
