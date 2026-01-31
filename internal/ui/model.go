@@ -22,6 +22,7 @@ type model struct {
 	focus               int
 	cursorMain          int
 	cursorSide          int
+	sideOffset          int
 	cursorAddToPlaylist int
 	mainOffset          int
 

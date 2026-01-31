@@ -358,6 +358,7 @@ func navigateTop(m model) model {
 		m.mainOffset = 0
 	case focusSidebar:
 		m.cursorSide = 0
+		m.sideOffset = 0
 	}
 
 	return m
@@ -385,7 +386,31 @@ func navigateBottom(m model) model {
 		}
 
 	case focusSidebar:
-		m.cursorSide = len(albumTypes) - 1 + len(m.playlists) - 1
+		total := len(albumTypes) + len(m.playlists)
+		m.cursorSide = total - 1
+
+		headerHeight := 1
+
+		footerHeight := int(float64(m.height) * 0.10)
+		if footerHeight < 5 {
+			footerHeight = 5
+		}
+
+		mainHeight := m.height - headerHeight - footerHeight - (3 * 2) // 3 sections with each 2 borders (top and bottom)
+		if mainHeight < 0 {
+			mainHeight = 0
+		}
+
+		visibleRows := mainHeight - 5 // Conservative estimate for headers
+		if visibleRows < 1 {
+			visibleRows = 1
+		}
+
+		if total > visibleRows {
+			m.sideOffset = total - visibleRows
+		} else {
+			m.sideOffset = 0
+		}
 	}
 
 	return m
@@ -399,6 +424,9 @@ func navigateUp(m model) model {
 		}
 	} else if m.focus == focusSidebar && m.cursorSide > 0 {
 		m.cursorSide--
+		if m.cursorSide < m.sideOffset {
+			m.sideOffset = m.cursorSide
+		}
 	}
 
 	return m
@@ -427,6 +455,27 @@ func navigateDown(m model) model {
 		}
 	} else if m.focus == focusSidebar && m.cursorSide < len(m.playlists)+albumOffset-1 { // + because of the Album offset
 		m.cursorSide++
+
+		headerHeight := 1
+
+		footerHeight := int(float64(m.height) * 0.10)
+		if footerHeight < 5 {
+			footerHeight = 5
+		}
+
+		mainHeight := m.height - headerHeight - footerHeight - (3 * 2) // 3 sections with each 2 borders (top and bottom)
+		if mainHeight < 0 {
+			mainHeight = 0
+		}
+
+		visibleRows := mainHeight - 5 // Conservative estimate for headers
+		if visibleRows < 1 {
+			visibleRows = 1
+		}
+
+		if m.cursorSide >= m.sideOffset+visibleRows {
+			m.sideOffset++
+		}
 	}
 
 	return m

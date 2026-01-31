@@ -230,10 +230,60 @@ func headerContent(m model) string {
 }
 
 func sidebarContent(m model, mainHeight int, sidebarWidth int) string {
-	sidebarContent := lipgloss.NewStyle().Bold(true).Render("  ALBUMS") + "\n\n"
-	for i, item := range albumTypes {
-		if i >= mainHeight-3 {
+	content := ""
+	currentLine := 0
+
+	totalItems := len(albumTypes) + len(m.playlists)
+
+	for i := m.sideOffset; i < totalItems; i++ {
+		// Stop if run out of space - 1
+		if currentLine >= mainHeight-1 {
 			break
+		}
+
+		// Handle Headers
+		if i == 0 {
+			header := lipgloss.NewStyle().Bold(true).Render("  ALBUMS")
+			if currentLine+2 <= mainHeight-1 {
+				content += header + "\n\n"
+				currentLine += 2
+			} else {
+				// Not enough space for header + spacing
+				break
+			}
+		} else if i == len(albumTypes) {
+			header := lipgloss.NewStyle().Bold(true).Render("  PLAYLISTS")
+
+			// If at top of view, use less padding above
+			if i == m.sideOffset {
+				if currentLine+2 <= mainHeight-1 {
+					content += header + "\n\n"
+					currentLine += 2
+				} else {
+					break
+				}
+			} else {
+				// If not top, use full padding
+				if currentLine+3 <= mainHeight-1 {
+					content += "\n" + header + "\n\n"
+					currentLine += 3
+				} else {
+					break
+				}
+			}
+		}
+
+		// Double check space for item before rendering
+		if currentLine >= mainHeight-1 {
+			break
+		}
+
+		// Item Logic
+		var name string
+		if i < len(albumTypes) {
+			name = albumTypes[i]
+		} else {
+			name = m.playlists[i-len(albumTypes)].Name
 		}
 
 		cursor := "  "
@@ -243,32 +293,12 @@ func sidebarContent(m model, mainHeight int, sidebarWidth int) string {
 			cursor = "> "
 		}
 
-		line := cursor + truncate(item, sidebarWidth-4)
-		sidebarContent += style.Render(line) + "\n"
+		line := cursor + truncate(name, sidebarWidth-4)
+		content += style.Render(line) + "\n"
+		currentLine++
 	}
 
-	albumOffset := len(albumTypes)
-	if mainHeight-2-albumOffset > 5 { // -2 (album and \n) - albumoffset
-		sidebarContent += lipgloss.NewStyle().Bold(true).Render("\n\n  PLAYLISTS") + "\n\n"
-		for i, item := range m.playlists {
-
-			playlistMaxHeight := mainHeight - 2 - albumOffset - 4 - 2 // Adding 2 as a margin
-			if playlistMaxHeight < i {
-				break
-			}
-
-			cursor := "  "
-			style := lipgloss.NewStyle()
-			if m.cursorSide == i+albumOffset && m.focus == focusSidebar {
-				style = style.Foreground(Theme.Highlight).Bold(true)
-				cursor = "> "
-			}
-
-			line := cursor + truncate(item.Name, sidebarWidth-4)
-			sidebarContent += style.Render(line) + "\n"
-		}
-	}
-	return sidebarContent
+	return content
 }
 
 func mainSongsContent(m model, mainWidth int, mainHeight int) string {
