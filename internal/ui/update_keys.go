@@ -31,6 +31,9 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	if m.focus == focusSearch {
+		if msg.String() == "enter" {
+			return enter(m)
+		}
 		return typeInput(m, msg)
 	}
 
