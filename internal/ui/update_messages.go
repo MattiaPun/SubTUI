@@ -216,9 +216,21 @@ func (m model) handleSongResult(msg songsResultMsg) (tea.Model, tea.Cmd) {
 
 func (m model) handleAlbumResult(msg albumsResultMsg) (tea.Model, tea.Cmd) {
 	m.loading = false
-	m.albums = msg.albums
-	m.cursorMain = 0
-	m.mainOffset = 0
+
+	// If this is a pagination request (offset > 0), append albums
+	if m.albumListOffset > 0 {
+		m.albums = append(m.albums, msg.albums...)
+	} else {
+		// First page, replace albums
+		m.albums = msg.albums
+		m.cursorMain = 0
+		m.mainOffset = 0
+	}
+
+	// Update hasMore flag based on result count
+	// If we got fewer than 100 albums, there are no more pages
+	m.albumListHasMore = len(msg.albums) >= 100
+
 	m.focus = focusMain
 
 	return m, nil

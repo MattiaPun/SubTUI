@@ -272,9 +272,19 @@ func enter(m model) (tea.Model, tea.Cmd) {
 					return m, m.setQueue(m.cursorMain)
 				}
 
-			// Open songs in album
+			// Open songs in album OR load more albums
 			case filterAlbums:
 				if len(m.albums) > 0 {
+					// Check if cursor is on the "(next...)" option
+					// The "(next...)" option is at index len(m.albums) when albumListHasMore is true
+					if m.albumListHasMore && m.cursorMain == len(m.albums) {
+						// Load next page
+						m.loading = true
+						m.albumListOffset += 100
+						return m, getAlbumList(m.albumListType, m.albumListOffset)
+					}
+
+					// Normal album selection
 					selectedAlbum := m.albums[m.cursorMain]
 					m.loading = true
 					m.displayMode = displaySongs
@@ -310,19 +320,28 @@ func enter(m model) (tea.Model, tea.Cmd) {
 
 		if m.cursorSide < albumOffset {
 			m.displayMode = displayAlbums
+			// Initialize pagination state
+			m.albumListOffset = 0
+			m.albumListHasMore = true
 			switch m.cursorSide {
 			case 0:
-				return m, getAlbumList("alphabeticalByArtist")
+				m.albumListType = "alphabeticalByArtist"
+				return m, getAlbumList("alphabeticalByArtist", 0)
 			case 1:
-				return m, getAlbumList("random")
+				m.albumListType = "random"
+				return m, getAlbumList("random", 0)
 			case 2:
-				return m, getAlbumList("starred")
+				m.albumListType = "starred"
+				return m, getAlbumList("starred", 0)
 			case 3:
-				return m, getAlbumList("newest")
+				m.albumListType = "newest"
+				return m, getAlbumList("newest", 0)
 			case 4:
-				return m, getAlbumList("recent")
+				m.albumListType = "recent"
+				return m, getAlbumList("recent", 0)
 			case 5:
-				return m, getAlbumList("frequent")
+				m.albumListType = "frequent"
+				return m, getAlbumList("frequent", 0)
 			}
 
 		} else {
@@ -376,6 +395,10 @@ func navigateBottom(m model) model {
 			listLen = len(m.songs)
 		case displayAlbums:
 			listLen = len(m.albums)
+			// Add 1 for the "(next...)" option if more albums are available
+			if m.albumListHasMore {
+				listLen++
+			}
 		case displayArtist:
 			listLen = len(m.artists)
 		}
@@ -442,6 +465,10 @@ func navigateDown(m model) model {
 		listLen = len(m.songs)
 	} else if m.displayMode == displayAlbums {
 		listLen = len(m.albums)
+		// Add 1 for the "(next...)" option if more albums are available
+		if m.albumListHasMore {
+			listLen++
+		}
 	} else if m.displayMode == displayArtist {
 		listLen = len(m.artists)
 	}

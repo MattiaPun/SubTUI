@@ -427,11 +427,34 @@ func mainAlbumsContent(m model, mainWidth int, mainHeight int) string {
 
 	start := m.mainOffset
 	end := start + visibleRows
-	if end >= len(m.albums) {
-		end = len(m.albums)
+
+	// Calculate total items including the "(next...)" option if present
+	totalItems := len(m.albums)
+	if m.albumListHasMore {
+		totalItems++
 	}
 
-	for i := start; i <= end; i++ {
+	if end >= totalItems {
+		end = totalItems
+	}
+
+	for i := start; i < end; i++ {
+		// Check if this is the "(next...)" option
+		if m.albumListHasMore && i == len(m.albums) {
+			cursor := "  "
+			style := lipgloss.NewStyle().Foreground(Theme.Subtle).Italic(true)
+
+			if m.cursorMain == i {
+				cursor = "> "
+				if m.focus == focusMain {
+					style = style.Foreground(Theme.Highlight).Bold(true)
+				}
+			}
+
+			mainContent += fmt.Sprintf("%s%s\n", cursor, style.Render("(next...)"))
+			continue
+		}
+
 		if i >= len(m.albums) {
 			break
 		}

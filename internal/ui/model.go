@@ -68,6 +68,11 @@ type model struct {
 	showHelp      bool
 	showPlaylists bool
 	helpModel     HelpModel
+
+	// Pagination State
+	albumListType    string
+	albumListOffset  int
+	albumListHasMore bool
 }
 
 type HelpModel struct {

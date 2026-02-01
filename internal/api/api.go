@@ -185,10 +185,11 @@ func SubsonicGetAlbum(id string) ([]Song, error) {
 	return data.Response.Album.Songs, nil
 }
 
-func SubsonicGetAlbumList(searchType string) ([]Album, error) {
+func SubsonicGetAlbumList(searchType string, offset int) ([]Album, error) {
 	params := map[string]string{
-		"type": searchType,
-		"size": "100",
+		"type":   searchType,
+		"size":   "100",
+		"offset": strconv.Itoa(offset),
 	}
 
 	data, err := subsonicGET("/getAlbumList", params)

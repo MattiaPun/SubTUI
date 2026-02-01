@@ -56,9 +56,9 @@ func getAlbumSongs(albumID string) tea.Cmd {
 	}
 }
 
-func getAlbumList(searchType string) tea.Cmd {
+func getAlbumList(searchType string, offset int) tea.Cmd {
 	return func() tea.Msg {
-		albums, err := api.SubsonicGetAlbumList(searchType)
+		albums, err := api.SubsonicGetAlbumList(searchType, offset)
 		if err != nil {
 			return errMsg{err}
 		}
