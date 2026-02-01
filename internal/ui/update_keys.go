@@ -312,14 +312,16 @@ func enter(m model) (tea.Model, tea.Cmd) {
 			m.displayMode = displayAlbums
 			switch m.cursorSide {
 			case 0:
-				return m, getAlbumList("random")
+				return m, getAlbumList("alphabeticalByArtist")
 			case 1:
-				return m, getAlbumList("starred")
+				return m, getAlbumList("random")
 			case 2:
-				return m, getAlbumList("newest")
+				return m, getAlbumList("starred")
 			case 3:
-				return m, getAlbumList("recent")
+				return m, getAlbumList("newest")
 			case 4:
+				return m, getAlbumList("recent")
+			case 5:
 				return m, getAlbumList("frequent")
 			}
 

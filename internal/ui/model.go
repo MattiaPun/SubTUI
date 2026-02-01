@@ -7,7 +7,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 )
 
-var albumTypes = []string{"Random", "Favorites", "Recently Added", "Recently Played", "Most Played"}
+var albumTypes = []string{"All", "Random", "Favorites", "Recently Added", "Recently Played", "Most Played"}
 
 // --- MODEL ---
 type model struct {
