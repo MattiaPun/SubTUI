@@ -161,6 +161,17 @@ func addSongToPlaylistCmd(songID string, playlistID string) tea.Cmd {
 	}
 }
 
+func addRatingCmd(ID string, rating int) tea.Cmd {
+	return func() tea.Msg {
+
+		if ID != "" && rating >= 0 && rating <= 5 {
+			api.SubsonicRate(ID, rating)
+		}
+
+		return nil
+	}
+}
+
 func createMediaShareCmd(ID string) tea.Cmd {
 	return func() tea.Msg {
 

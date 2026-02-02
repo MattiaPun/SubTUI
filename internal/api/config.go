@@ -75,6 +75,7 @@ type SearchKeybinds struct {
 
 type LibraryKeybinds struct {
 	AddToPlaylist []string `toml:"add_to_playlist"`
+	AddRating     []string `toml:"add_rating"`
 	GoToAlbum     []string `toml:"go_to_album"`
 	GoToArtist    []string `toml:"go_to_artist"`
 }

@@ -38,6 +38,10 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return playlistsMenu(key, m)
 	}
 
+	if m.showRating {
+		return ratingMenu(key, m)
+	}
+
 	if keyMatches(key, api.AppConfig.Keybinds.Global.Help) {
 		m.showHelp = !m.showHelp
 		return m, nil
@@ -105,6 +109,10 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// LIBRARY KEYBINDS
 	if keyMatches(key, api.AppConfig.Keybinds.Library.AddToPlaylist) {
 		return toggleAddToPlaylistPopup(m), nil
+	}
+
+	if keyMatches(key, api.AppConfig.Keybinds.Library.AddRating) {
+		return toggleAddRatingPopup(m), nil
 	}
 
 	// MEDIA KEYBINDS
@@ -859,14 +867,37 @@ func mediaShowFavorites(m model, msg tea.Msg) (model, tea.Cmd) {
 }
 
 func toggleAddToPlaylistPopup(m model) model {
-	if m.focus == focusSearch && m.displayMode == displaySongs &&
+	if m.focus == focusMain && m.displayMode == displaySongs &&
 		((m.viewMode == viewList && len(m.songs) > 0) || (m.viewMode == viewQueue && len(m.queue) > 0)) {
 		m.showPlaylists = !m.showPlaylists
 
 		if m.showPlaylists {
-			m.cursorAddToPlaylist = 0
+			m.cursorPopup = 0
 		}
 
+	}
+
+	return m
+}
+
+func toggleAddRatingPopup(m model) model {
+	if m.focus != focusMain {
+		return m
+	}
+
+	switch m.displayMode {
+	case displaySongs:
+		if (m.viewMode == viewList && len(m.songs) > 0 && m.songs[m.cursorMain].ID != "") || (m.viewMode == viewQueue && len(m.queue) > 0 && m.queue[m.cursorMain].ID != "") {
+			m.showRating = !m.showRating
+		}
+	case displayAlbums:
+		if len(m.albums) > 0 && m.albums[m.cursorMain].ID != "" {
+			m.showRating = !m.showRating
+		}
+	case displayArtist:
+		if len(m.artists) > 0 && m.artists[m.cursorMain].ID != "" {
+			m.showRating = !m.showRating
+		}
 	}
 
 	return m
@@ -978,24 +1009,57 @@ func playlistsMenu(key string, m model) (model, tea.Cmd) {
 	var cmd tea.Cmd
 	if keyMatches(key, api.AppConfig.Keybinds.Global.Back) || keyMatches(key, api.AppConfig.Keybinds.Library.AddToPlaylist) {
 		m.showPlaylists = false
+		m.cursorPopup = 0
 		return m, nil
 	}
 
 	if keyMatches(key, api.AppConfig.Keybinds.Navigation.Up) {
-		if m.cursorAddToPlaylist > 0 {
-			m.cursorAddToPlaylist--
+		if m.cursorPopup > 0 {
+			m.cursorPopup--
 		}
 	} else if keyMatches(key, api.AppConfig.Keybinds.Navigation.Down) {
-		if m.cursorAddToPlaylist < len(m.playlists)-1 {
-			m.cursorAddToPlaylist++
+		if m.cursorPopup < len(m.playlists)-1 {
+			m.cursorPopup++
 		}
 	} else if keyMatches(key, api.AppConfig.Keybinds.Navigation.Select) {
 		if m.viewMode == viewList {
-			cmd = addSongToPlaylistCmd(m.songs[m.cursorMain].ID, m.playlists[m.cursorAddToPlaylist].ID)
+			cmd = addSongToPlaylistCmd(m.songs[m.cursorMain].ID, m.playlists[m.cursorPopup].ID)
 		} else {
-			cmd = addSongToPlaylistCmd(m.queue[m.cursorMain].ID, m.playlists[m.cursorAddToPlaylist].ID)
+			cmd = addSongToPlaylistCmd(m.queue[m.cursorMain].ID, m.playlists[m.cursorPopup].ID)
 		}
 		m.showPlaylists = !m.showPlaylists
+		return m, cmd
+	}
+
+	return m, nil
+}
+
+func ratingMenu(key string, m model) (model, tea.Cmd) {
+	var cmd tea.Cmd
+	if keyMatches(key, api.AppConfig.Keybinds.Global.Back) || keyMatches(key, api.AppConfig.Keybinds.Library.AddRating) {
+		m.showRating = false
+		m.cursorPopup = 0
+		return m, nil
+	}
+
+	if keyMatches(key, api.AppConfig.Keybinds.Navigation.Up) && m.cursorPopup > 0 {
+		m.cursorPopup--
+	} else if keyMatches(key, api.AppConfig.Keybinds.Navigation.Down) && m.cursorPopup < 5 {
+		m.cursorPopup++
+	} else if keyMatches(key, api.AppConfig.Keybinds.Navigation.Select) {
+		switch m.displayMode {
+		case displaySongs:
+			if m.viewMode == viewList {
+				cmd = addRatingCmd(m.songs[m.cursorMain].ID, m.cursorPopup)
+			} else {
+				cmd = addRatingCmd(m.queue[m.cursorMain].ID, m.cursorPopup)
+			}
+		case displayAlbums:
+			cmd = addRatingCmd(m.albums[m.cursorMain].ID, m.cursorPopup)
+		case displayArtist:
+			cmd = addRatingCmd(m.artists[m.cursorMain].ID, m.cursorPopup)
+		}
+		m.showRating = !m.showRating
 		return m, cmd
 	}
 
