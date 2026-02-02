@@ -76,6 +76,7 @@ type Song struct {
 	Album    string `json:"album"`
 	AlbumID  string `json:"albumId"`
 	Duration int    `json:"duration"`
+	Rating   int    `json:"userRating"`
 }
 
 type Playlist struct {

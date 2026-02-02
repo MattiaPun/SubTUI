@@ -1059,6 +1059,7 @@ func ratingMenu(key string, m model) (model, tea.Cmd) {
 		case displayArtist:
 			cmd = addRatingCmd(m.artists[m.cursorMain].ID, m.cursorPopup)
 		}
+		m.cursorPopup = 0
 		m.showRating = !m.showRating
 		return m, cmd
 	}
