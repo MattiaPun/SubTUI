@@ -80,14 +80,16 @@ type LibraryKeybinds struct {
 }
 
 type MediaKeybinds struct {
-	PlayPause []string `toml:"play_pause"`
-	Next      []string `toml:"next"`
-	Prev      []string `toml:"prev"`
-	Shuffle   []string `toml:"shuffle"`
-	Loop      []string `toml:"loop"`
-	Restart   []string `toml:"restart"`
-	Rewind    []string `toml:"rewind"`
-	Forward   []string `toml:"forward"`
+	PlayPause  []string `toml:"play_pause"`
+	Next       []string `toml:"next"`
+	Prev       []string `toml:"prev"`
+	Shuffle    []string `toml:"shuffle"`
+	Loop       []string `toml:"loop"`
+	Restart    []string `toml:"restart"`
+	Rewind     []string `toml:"rewind"`
+	Forward    []string `toml:"forward"`
+	VolumeUp   []string `toml:"volume_up"`
+	VolumeDown []string `toml:"volume_down"`
 }
 
 type QueueKeybinds struct {

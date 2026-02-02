@@ -49,6 +49,8 @@ special   = ["#43BF6D", "#73F59F"]
   restart      = ["w"]
   rewind       = [","]
   forward      = [";"]
+  volume_up    = ["v"]
+  volume_down  = ["V"]
 
   [keybinds.queue]
   toggle_queue_view = ["Q"]
