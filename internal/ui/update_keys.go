@@ -633,26 +633,16 @@ func mediaSongPrev(m model, msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 }
 
-func mediaVolumeUp(m model, msg tea.Msg) (tea.Model, tea.Cmd) {
-	_, isMpris := msg.(integration.PreviousSongMsg)
-	if m.focus != focusSearch || isMpris {
-		player.VolumeUp()
-		m.playerStatus.Volume = player.GetVolume()
-		return m, nil
-	} else {
-		return typeInput(m, msg)
-	}
+func mediaVolumeUp(m model, _ tea.Msg) (tea.Model, tea.Cmd) {
+	player.VolumeUp()
+	m.playerStatus.Volume = player.GetVolume()
+	return m, nil
 }
 
-func mediaVolumeDown(m model, msg tea.Msg) (tea.Model, tea.Cmd) {
-	_, isMpris := msg.(integration.PreviousSongMsg)
-	if m.focus != focusSearch || isMpris {
-		player.VolumeDown()
-		m.playerStatus.Volume = player.GetVolume()
-		return m, nil
-	} else {
-		return typeInput(m, msg)
-	}
+func mediaVolumeDown(m model, _ tea.Msg) (tea.Model, tea.Cmd) {
+	player.VolumeDown()
+	m.playerStatus.Volume = player.GetVolume()
+	return m, nil
 }
 
 func mediaQueueNext(m model) model {
