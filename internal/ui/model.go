@@ -19,12 +19,12 @@ type model struct {
 	playerStatus player.PlayerStatus
 
 	// Navigation State
-	focus               int
-	cursorMain          int
-	cursorSide          int
-	sideOffset          int
-	cursorAddToPlaylist int
-	mainOffset          int
+	focus       int
+	cursorMain  int
+	cursorSide  int
+	sideOffset  int
+	cursorPopup int
+	mainOffset  int
 
 	// Window Dimensions
 	width  int
@@ -67,6 +67,7 @@ type model struct {
 	// Overlay States
 	showHelp      bool
 	showPlaylists bool
+	showRating    bool
 	helpModel     HelpModel
 }
 

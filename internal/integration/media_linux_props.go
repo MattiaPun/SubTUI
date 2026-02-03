@@ -49,5 +49,6 @@ func (m Metadata) ToMap() map[string]interface{} {
 		"xesam:album":       m.Album,
 		"xesam:albumArtist": []string{m.Artist},
 		"mpris:artUrl":      m.ImageURL,
+		"xesam:userRating":  m.Rating / 5.0,
 	}
 }

@@ -37,6 +37,7 @@ special   = ["#43BF6D", "#73F59F"]
 
   [keybinds.library]
   add_to_playlist = ["A"]
+  add_rating      = ["R"]
   go_to_album     = ["ga"]
   go_to_artist    = ["gr"]
 

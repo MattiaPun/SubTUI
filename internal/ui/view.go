@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 
 	"github.com/MattiaPun/SubTUI/internal/api"
@@ -20,13 +21,13 @@ func (m model) View() string {
 	base := m.BaseView()
 
 	if m.showPlaylists {
-		rawContent := addToPlaylistContent(m)
+		content := addToPlaylistContent(m)
 
 		styledContent := popupStyle.Render(
 			lipgloss.JoinVertical(lipgloss.Center,
 				lipgloss.NewStyle().Bold(true).Render("Select Playlist"),
 				"",
-				rawContent,
+				content,
 			),
 		)
 
@@ -34,6 +35,24 @@ func (m model) View() string {
 		bg := BackgroundWrapper{RenderedView: base}
 
 		return overlay.New(fg, bg, overlay.Center, overlay.Center, 0, 0).View()
+	}
+
+	if m.showRating {
+		content := addRatingContent(m)
+
+		styledContent := popupStyle.Render(
+			lipgloss.JoinVertical(lipgloss.Center,
+				lipgloss.NewStyle().Bold(true).Render("Select Rating"),
+				"",
+				content,
+			),
+		)
+
+		fg := ContentModel{Content: styledContent}
+		bg := BackgroundWrapper{RenderedView: base}
+
+		return overlay.New(fg, bg, overlay.Center, overlay.Center, 0, 0).View()
+
 	}
 
 	if m.showHelp {
@@ -690,6 +709,7 @@ func helpViewContent() string {
 
 	libraryKeybinds := section("LIBRARY",
 		line(keys(api.AppConfig.Keybinds.Library.AddToPlaylist), "Add to playlist"),
+		line(keys(api.AppConfig.Keybinds.Library.AddRating), "Add rating"),
 		line(keys(api.AppConfig.Keybinds.Library.GoToAlbum), "Go to album"),
 		line(keys(api.AppConfig.Keybinds.Library.GoToArtist), "Go to artist"),
 	)
@@ -765,7 +785,7 @@ func addToPlaylistContent(m model) string {
 		cursor := ""
 		style := lipgloss.NewStyle()
 
-		if m.cursorAddToPlaylist == i {
+		if m.cursorPopup == i {
 			style = style.Foreground(Theme.Highlight).Bold(true)
 			cursor = "> "
 		}
@@ -775,6 +795,27 @@ func addToPlaylistContent(m model) string {
 	}
 
 	return playlistContent
+}
+
+func addRatingContent(m model) string {
+	ratingContent := ""
+	for i := 0; i <= 5; i++ {
+		cursor := ""
+		style := lipgloss.NewStyle()
+
+		if m.cursorPopup == i {
+			style = style.Foreground(Theme.Highlight).Bold(true)
+			cursor = "> "
+		} else {
+			cursor = "  "
+		}
+
+		stars := strings.Repeat("★", i)
+
+		ratingContent += fmt.Sprintf("%s%s %s\n", cursor, style.Render(strconv.Itoa(i)), stars)
+	}
+
+	return lipgloss.NewStyle().Align(lipgloss.Left).Render(ratingContent)
 }
 
 func viewToSmallContent(m model) string {
