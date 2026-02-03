@@ -2,7 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"math"
 	"strconv"
 	"strings"
 
@@ -547,25 +546,6 @@ func mainArtistContent(m model, mainWidth int, mainHeight int) string {
 	return mainContent
 }
 
-func footerVolumeBar(m model) string {
-	//The current step is 5, so we divide by 20 to get the number of steps
-	volume := math.Round(m.playerStatus.Volume / 5)
-
-	if volume > 20 {
-		volume = 20
-	} else if volume < 0 {
-		volume = 0
-	}
-
-	bar := strings.Repeat("=", int(volume)/2)
-	if int(volume)%2 == 1 {
-		bar += ">"
-	}
-	bar += strings.Repeat("-", 10-int(volume)/2-int(volume)%2)
-
-	return fmt.Sprintf("%v%% [%s]", m.playerStatus.Volume, bar)
-}
-
 func footerContent(m model) string {
 	title := ""
 	artistAlbumText := ""
@@ -586,7 +566,10 @@ func footerContent(m model) string {
 		notifyText = "[Silent]"
 	}
 
-	topRowGap := m.width - 2 - 3 - 3 - len(notifyText) - len(title)
+	const borderWidth = 2
+	const spacing = 3
+
+	topRowGap := m.width - borderWidth - 2*spacing - len(notifyText) - len(title)
 
 	if topRowGap > 0 {
 		title += strings.Repeat(" ", topRowGap) + notifyText
@@ -628,25 +611,23 @@ func footerContent(m model) string {
 		loopText = "[Loop one]"
 	}
 
-	const borderWidth = 2
-	const spacing = 3
+	volumeText := ""
+	if m.playerStatus.Volume != 100 {
+		volumeText = fmt.Sprintf(" [%v%%]", m.playerStatus.Volume)
+	}
 
 	bottomRowGap := 0
-	bottomRowSpaceTaken := borderWidth + 2*spacing + len(artistAlbumText) + len(loopText)
+	bottomRowSpaceTaken := borderWidth + 2*spacing + len(artistAlbumText) + len(loopText) + len(volumeText)
 	if artistAlbumText != "" && m.width != 0 && m.width-bottomRowSpaceTaken > 0 {
 		bottomRowGap = m.width - bottomRowSpaceTaken
 	} else if m.width != 0 {
 		bottomRowGap = m.width - borderWidth - 2*spacing - len(loopText)
 	}
 
-	bottomRowText := artistAlbumText + strings.Repeat(" ", bottomRowGap) + loopText
-	volumeText := footerVolumeBar(m)
-	volumeWidth := len(volumeText)
-	volumeText = lipgloss.NewStyle().Foreground(Theme.Special).Render(volumeText)
+	bottomRowText := artistAlbumText + strings.Repeat(" ", bottomRowGap) + loopText + volumeText
 
-	//TODO: why is the -1 offset needed?
-	topRow := lipgloss.NewStyle().Bold(true).Foreground(Theme.Highlight).Render("   " + LimitString(title, m.width-borderWidth-volumeWidth-2*spacing))
-	bottomRow := lipgloss.NewStyle().Foreground(Theme.Subtle).Render("   " + LimitString(bottomRowText, m.width-borderWidth/2-spacing))
+	topRow := lipgloss.NewStyle().Bold(true).Foreground(Theme.Highlight).Render("   " + LimitString(title, m.width-borderWidth-2*spacing))
+	bottomRow := lipgloss.NewStyle().Foreground(Theme.Subtle).Render("   " + LimitString(bottomRowText, m.width-borderWidth-2*spacing))
 
 	rawProgress := fmt.Sprintf("%s %s %s",
 		currStr,
@@ -659,7 +640,7 @@ func footerContent(m model) string {
 		Align(lipgloss.Center).
 		Render(rawProgress)
 
-	return fmt.Sprintf("%s%s\n%s\n\n%s", topRow, volumeText, bottomRow, rowProgress)
+	return fmt.Sprintf("%s\n%s\n\n%s", topRow, bottomRow, rowProgress)
 }
 
 func helpViewContent() string {
