@@ -72,7 +72,11 @@ func subsonicGET(endpoint string, params map[string]string) (*SubsonicResponse, 
 }
 
 func SubsonicLoginCheck() error {
-	data, err := subsonicGET("/getUser", nil)
+	params := map[string]string{
+		"username": AppConfig.Server.Username,
+	}
+
+	data, err := subsonicGET("/getUser", params)
 	if err != nil {
 		return fmt.Errorf("network error: %v", err)
 	}
