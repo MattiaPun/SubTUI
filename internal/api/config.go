@@ -75,19 +75,22 @@ type SearchKeybinds struct {
 
 type LibraryKeybinds struct {
 	AddToPlaylist []string `toml:"add_to_playlist"`
+	AddRating     []string `toml:"add_rating"`
 	GoToAlbum     []string `toml:"go_to_album"`
 	GoToArtist    []string `toml:"go_to_artist"`
 }
 
 type MediaKeybinds struct {
-	PlayPause []string `toml:"play_pause"`
-	Next      []string `toml:"next"`
-	Prev      []string `toml:"prev"`
-	Shuffle   []string `toml:"shuffle"`
-	Loop      []string `toml:"loop"`
-	Restart   []string `toml:"restart"`
-	Rewind    []string `toml:"rewind"`
-	Forward   []string `toml:"forward"`
+	PlayPause  []string `toml:"play_pause"`
+	Next       []string `toml:"next"`
+	Prev       []string `toml:"prev"`
+	Shuffle    []string `toml:"shuffle"`
+	Loop       []string `toml:"loop"`
+	Restart    []string `toml:"restart"`
+	Rewind     []string `toml:"rewind"`
+	Forward    []string `toml:"forward"`
+	VolumeUp   []string `toml:"volume_up"`
+	VolumeDown []string `toml:"volume_down"`
 }
 
 type QueueKeybinds struct {

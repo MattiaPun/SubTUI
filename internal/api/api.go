@@ -72,7 +72,11 @@ func subsonicGET(endpoint string, params map[string]string) (*SubsonicResponse, 
 }
 
 func SubsonicLoginCheck() error {
-	data, err := subsonicGET("/getUser", nil)
+	params := map[string]string{
+		"username": AppConfig.Server.Username,
+	}
+
+	data, err := subsonicGET("/getUser", params)
 	if err != nil {
 		return fmt.Errorf("network error: %v", err)
 	}
@@ -240,6 +244,15 @@ func SubsonicGetStarred() (*SearchResult3, error) {
 		Albums:  data.Response.Starred2.Album,
 		Songs:   data.Response.Starred2.Song,
 	}, nil
+}
+
+func SubsonicRate(ID string, rating int) {
+	params := map[string]string{
+		"id":     ID,
+		"rating": strconv.Itoa(rating),
+	}
+
+	_, _ = subsonicGET("/setRating", params)
 }
 
 func SubsonicStream(id string) string {

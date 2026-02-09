@@ -114,6 +114,7 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 				Album:    currentSong.Album,
 				Duration: float64(currentSong.Duration), // Cast int to float64
 				ImageURL: api.SubsonicCoverArtUrl(currentSong.ID, 500),
+				Rating:   math.Round(float64(currentSong.Rating*10)) / 10,
 			}
 
 			// System notification

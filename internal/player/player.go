@@ -30,6 +30,8 @@ type PlayerStatus struct {
 	Path     string
 }
 
+const volumeStep = 5
+
 func InitPlayer() error {
 	socketPath := filepath.Join(os.TempDir(), fmt.Sprintf("subtui_mpv_socket_%d", os.Getuid()))
 	log.Printf("[Player] Initializing MPV IPC at %s", socketPath)
@@ -138,6 +140,31 @@ func Back10Seconds() {
 
 func Forward10Seconds() {
 	_ = mpvClient.Seek(+10)
+}
+
+func VolumeUp() {
+	if mpvClient.CurrentVolume()+volumeStep > 100 {
+		_ = mpvClient.Volume(100)
+		return
+	}
+	_ = mpvClient.Volume(mpvClient.CurrentVolume() + volumeStep)
+}
+
+func VolumeDown() {
+	if mpvClient.CurrentVolume()-volumeStep < 0 {
+		_ = mpvClient.Volume(0)
+		return
+	}
+	_ = mpvClient.Volume(mpvClient.CurrentVolume() - volumeStep)
+}
+
+func GetVolume() float64 {
+	vol, _ := mpvClient.GetFloatProperty("volume")
+	return vol
+}
+
+func SetVolume(volume int) {
+	_ = mpvClient.Volume(volume)
 }
 
 func GetPlayerStatus() PlayerStatus {

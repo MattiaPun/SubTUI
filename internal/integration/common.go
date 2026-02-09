@@ -7,6 +7,7 @@ type Metadata struct {
 	Duration float64
 	Position float64
 	ImageURL string
+	Rating   float64
 }
 
 type Status string

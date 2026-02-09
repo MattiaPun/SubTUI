@@ -1,4 +1,4 @@
-module github.com/MattiaPun/SubTUI
+module github.com/MattiaPun/SubTUI/v2
 
 go 1.25.4
 
