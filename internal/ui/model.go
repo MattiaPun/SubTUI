@@ -70,9 +70,10 @@ type model struct {
 	helpModel     HelpModel
 
 	// Pagination State
-	albumListType    string
-	albumListOffset  int
-	albumListHasMore bool
+	lastSearchQuery string
+	albumListType   string
+	pageOffset      int
+	pageHasMore     bool
 }
 
 type HelpModel struct {

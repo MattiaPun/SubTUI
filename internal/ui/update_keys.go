@@ -82,7 +82,7 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	if keyMatches(key, api.AppConfig.Keybinds.Navigation.Bottom) {
-		return navigateBottom(m), nil
+		return navigateBottom(m)
 	}
 
 	if keyMatches(key, api.AppConfig.Keybinds.Navigation.Select) {
@@ -251,6 +251,11 @@ func enter(m model) (tea.Model, tea.Cmd) {
 			m.viewMode = viewList
 			m.textInput.Blur()
 
+			// Reset paging
+			m.pageOffset = 0
+			m.pageHasMore = true
+			// m.lastSearchQuery = query
+
 			switch m.filterMode {
 			case filterSongs:
 				m.displayMode = displaySongs
@@ -260,7 +265,7 @@ func enter(m model) (tea.Model, tea.Cmd) {
 				m.displayMode = displayArtist
 			}
 
-			return m, searchCmd(query, m.filterMode)
+			return m, searchCmd(query, m.filterMode, 0)
 		}
 
 	case focusMain:
@@ -311,8 +316,9 @@ func enter(m model) (tea.Model, tea.Cmd) {
 		if m.cursorSide < albumOffset {
 			m.displayMode = displayAlbums
 			// Initialize pagination state
-			m.albumListOffset = 0
-			m.albumListHasMore = true
+			m.pageOffset = 0
+			m.pageHasMore = true
+			m.lastSearchQuery = ""
 			switch m.cursorSide {
 			case 0:
 				m.albumListType = "alphabeticalByArtist"
@@ -375,7 +381,7 @@ func navigateTop(m model) model {
 	return m
 }
 
-func navigateBottom(m model) model {
+func navigateBottom(m model) (model, tea.Cmd) {
 	switch m.focus {
 	case focusMain:
 
@@ -424,7 +430,7 @@ func navigateBottom(m model) model {
 		}
 	}
 
-	return m
+	return loadMore(m)
 }
 
 func navigateUp(m model) model {
@@ -489,14 +495,8 @@ func navigateDown(m model) (model, tea.Cmd) {
 		}
 	}
 
-	if m.focus == focusMain && m.displayMode == displayAlbums && m.albumListHasMore && !m.loading && len(m.albums)-m.cursorMain <= 10 {
-		m.loading = true
-		m.albumListOffset += 150
-		return m, getAlbumList(m.albumListType, m.albumListOffset)
-
-	}
-
-	return m, nil
+	// Check to see if more has to be loaded
+	return loadMore(m)
 }
 
 func displaySongAlbum(m model) (tea.Model, tea.Cmd) {
@@ -1015,6 +1015,40 @@ func playlistsMenu(key string, m model) (model, tea.Cmd) {
 		}
 		m.showPlaylists = !m.showPlaylists
 		return m, cmd
+	}
+
+	return m, nil
+}
+
+// Helper for infinte scrolling
+func loadMore(m model) (model, tea.Cmd) {
+	if m.focus == focusMain && m.pageHasMore && !m.loading {
+		// Songs
+		if m.displayMode == displaySongs && len(m.songs)-m.cursorMain <= 10 && m.lastSearchQuery != "" {
+			m.loading = true
+			m.pageOffset += 150
+			return m, searchCmd(m.lastSearchQuery, filterSongs, m.pageOffset)
+		}
+
+		// Albums
+		if m.displayMode == displayAlbums && len(m.albums)-m.cursorMain <= 10 {
+			m.loading = true
+			m.pageOffset += 150
+
+			// Check if search or sidebar loading
+			if m.lastSearchQuery != "" {
+				return m, searchCmd(m.lastSearchQuery, filterAlbums, m.pageOffset)
+			} else {
+				return m, getAlbumList(m.albumListType, m.pageOffset)
+			}
+		}
+
+		// Artists
+		if m.displayMode == displayArtist && len(m.artists)-m.cursorMain <= 10 && m.lastSearchQuery != "" {
+			m.loading = true
+			m.pageOffset += 150
+			return m, searchCmd(m.lastSearchQuery, filterArtist, m.pageOffset)
+		}
 	}
 
 	return m, nil
