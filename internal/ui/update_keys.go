@@ -78,7 +78,7 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	if keyMatches(key, api.AppConfig.Keybinds.Navigation.Down) {
-		return navigateDown(m), nil
+		return navigateDown(m)
 	}
 
 	if keyMatches(key, api.AppConfig.Keybinds.Navigation.Bottom) {
@@ -272,19 +272,9 @@ func enter(m model) (tea.Model, tea.Cmd) {
 					return m, m.setQueue(m.cursorMain)
 				}
 
-			// Open songs in album OR load more albums
+			// Open songs in album
 			case filterAlbums:
 				if len(m.albums) > 0 {
-					// Check if cursor is on the "(next...)" option
-					// The "(next...)" option is at index len(m.albums) when albumListHasMore is true
-					if m.albumListHasMore && m.cursorMain == len(m.albums) {
-						// Load next page
-						m.loading = true
-						m.albumListOffset += 100
-						return m, getAlbumList(m.albumListType, m.albumListOffset)
-					}
-
-					// Normal album selection
 					selectedAlbum := m.albums[m.cursorMain]
 					m.loading = true
 					m.displayMode = displaySongs
@@ -395,10 +385,6 @@ func navigateBottom(m model) model {
 			listLen = len(m.songs)
 		case displayAlbums:
 			listLen = len(m.albums)
-			// Add 1 for the "(next...)" option if more albums are available
-			if m.albumListHasMore {
-				listLen++
-			}
 		case displayArtist:
 			listLen = len(m.artists)
 		}
@@ -457,7 +443,7 @@ func navigateUp(m model) model {
 	return m
 }
 
-func navigateDown(m model) model {
+func navigateDown(m model) (model, tea.Cmd) {
 	listLen := 0
 	if m.viewMode == viewQueue {
 		listLen = len(m.queue)
@@ -465,10 +451,6 @@ func navigateDown(m model) model {
 		listLen = len(m.songs)
 	} else if m.displayMode == displayAlbums {
 		listLen = len(m.albums)
-		// Add 1 for the "(next...)" option if more albums are available
-		if m.albumListHasMore {
-			listLen++
-		}
 	} else if m.displayMode == displayArtist {
 		listLen = len(m.artists)
 	}
@@ -507,7 +489,14 @@ func navigateDown(m model) model {
 		}
 	}
 
-	return m
+	if m.focus == focusMain && m.displayMode == displayAlbums && m.albumListHasMore && !m.loading && len(m.albums)-m.cursorMain <= 10 {
+		m.loading = true
+		m.albumListOffset += 150
+		return m, getAlbumList(m.albumListType, m.albumListOffset)
+
+	}
+
+	return m, nil
 }
 
 func displaySongAlbum(m model) (tea.Model, tea.Cmd) {

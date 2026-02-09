@@ -228,8 +228,8 @@ func (m model) handleAlbumResult(msg albumsResultMsg) (tea.Model, tea.Cmd) {
 	}
 
 	// Update hasMore flag based on result count
-	// If we got fewer than 100 albums, there are no more pages
-	m.albumListHasMore = len(msg.albums) >= 100
+	// If we got fewer than 150 albums, there are no more pages
+	m.albumListHasMore = len(msg.albums) >= 150
 
 	m.focus = focusMain
 

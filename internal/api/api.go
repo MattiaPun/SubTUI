@@ -188,7 +188,7 @@ func SubsonicGetAlbum(id string) ([]Song, error) {
 func SubsonicGetAlbumList(searchType string, offset int) ([]Album, error) {
 	params := map[string]string{
 		"type":   searchType,
-		"size":   "100",
+		"size":   "150",
 		"offset": strconv.Itoa(offset),
 	}
 
