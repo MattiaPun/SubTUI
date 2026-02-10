@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"github.com/MattiaPun/SubTUI/internal/api"
+	"github.com/MattiaPun/SubTUI/v2/internal/api"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -16,26 +16,26 @@ func attemptLoginCmd() tea.Cmd {
 	}
 }
 
-func searchCmd(query string, mode int) tea.Cmd {
+func searchCmd(query string, mode int, offset int) tea.Cmd {
 	return func() tea.Msg {
 
 		switch mode {
 		case filterSongs:
-			songs, err := api.SubsonicSearchSong(query, 0)
+			songs, err := api.SubsonicSearchSong(query, offset)
 			if err != nil {
 				return errMsg{err}
 			}
 			return songsResultMsg{songs}
 
 		case filterAlbums:
-			albums, err := api.SubsonicSearchAlbum(query, 0)
+			albums, err := api.SubsonicSearchAlbum(query, offset)
 			if err != nil {
 				return errMsg{err}
 			}
 			return albumsResultMsg{albums}
 
 		case filterArtist:
-			artists, err := api.SubsonicSearchArtist(query, 0)
+			artists, err := api.SubsonicSearchArtist(query, offset)
 			if err != nil {
 				return errMsg{err}
 			}
@@ -56,9 +56,9 @@ func getAlbumSongs(albumID string) tea.Cmd {
 	}
 }
 
-func getAlbumList(searchType string) tea.Cmd {
+func getAlbumList(searchType string, offset int) tea.Cmd {
 	return func() tea.Msg {
-		albums, err := api.SubsonicGetAlbumList(searchType)
+		albums, err := api.SubsonicGetAlbumList(searchType, offset)
 		if err != nil {
 			return errMsg{err}
 		}

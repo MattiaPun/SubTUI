@@ -32,3 +32,22 @@ changelog:
     exclude:
       - '^docs:'
       - '^test:'
+
+nfpms:
+  - id: packages
+    package_name: subtui
+    file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    
+    homepage: https://github.com/MattiaPun/SubTUI
+    maintainer: Mattia Pun <mattia@punjwani.pm>
+    vendor: MattiaPun
+    description: "A Subsonic TUI Client"
+    license: MIT
+    
+    formats:
+      - rpm
+      - deb 
+    dependencies:
+      - mpv
+      
+    bindir: /usr/bin

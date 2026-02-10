@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/MattiaPun/SubTUI/internal/api"
+	"github.com/MattiaPun/SubTUI/v2/internal/api"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mattn/go-runewidth"
 
@@ -112,7 +112,7 @@ func (m model) BaseView() string {
 	}
 
 	mainContent := ""
-	if m.loading {
+	if m.loading && len(m.albums) == 0 && m.displayMode == displayAlbums {
 		mainContent = "\n  Searching your library..."
 	} else if m.displayMode == displaySongs {
 		mainContent = mainSongsContent(m, mainWidth, mainHeight)
@@ -696,7 +696,7 @@ func helpViewContent() string {
 	)
 
 	mediaKeybinds := section("MEDIA",
-		line(keys(api.AppConfig.Keybinds.Library.GoToArtist), "Play/Pause"),
+		line(keys(api.AppConfig.Keybinds.Media.PlayPause), "Play/Pause"),
 		line(keys(api.AppConfig.Keybinds.Media.Next), "Next song"),
 		line(keys(api.AppConfig.Keybinds.Media.Prev), "Prev song"),
 		line(keys(api.AppConfig.Keybinds.Media.Shuffle), "Shuffle"),

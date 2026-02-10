@@ -65,6 +65,7 @@ type Album struct {
 	ID       string `json:"id"`
 	Name     string `json:"name"`
 	Artist   string `json:"artist"`
+	ArtistID string `json:"artistId"`
 	Duration int64  `json:"duration"`
 }
 

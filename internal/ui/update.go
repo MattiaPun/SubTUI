@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"github.com/MattiaPun/SubTUI/internal/integration"
+	"github.com/MattiaPun/SubTUI/v2/internal/integration"
 	tea "github.com/charmbracelet/bubbletea"
 )
 

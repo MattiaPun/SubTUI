@@ -3,8 +3,8 @@ package ui
 import (
 	"fmt"
 
-	"github.com/MattiaPun/SubTUI/internal/api"
-	"github.com/MattiaPun/SubTUI/internal/player"
+	"github.com/MattiaPun/SubTUI/v2/internal/api"
+	"github.com/MattiaPun/SubTUI/v2/internal/player"
 	tea "github.com/charmbracelet/bubbletea"
 )
 

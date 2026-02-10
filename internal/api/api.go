@@ -95,11 +95,11 @@ func SubsonicLoginCheck() error {
 	return nil
 }
 
-func SubsonicSearchArtist(query string, page int) ([]Artist, error) {
+func SubsonicSearchArtist(query string, offset int) ([]Artist, error) {
 	params := map[string]string{
 		"query":        query,
 		"artistCount":  "150",
-		"artistOffset": strconv.Itoa(page * 20),
+		"artistOffset": strconv.Itoa(offset),
 		"albumCount":   "0",
 		"albumOffset":  "0",
 		"songCount":    "0",
@@ -114,13 +114,13 @@ func SubsonicSearchArtist(query string, page int) ([]Artist, error) {
 	return data.Response.SearchResult.Artists, nil
 }
 
-func SubsonicSearchAlbum(query string, page int) ([]Album, error) {
+func SubsonicSearchAlbum(query string, offset int) ([]Album, error) {
 	params := map[string]string{
 		"query":        query,
 		"artistCount":  "0",
 		"artistOffset": "0",
 		"albumCount":   "150",
-		"albumOffset":  strconv.Itoa(page * 20),
+		"albumOffset":  strconv.Itoa(offset),
 		"songCount":    "0",
 		"songOffset":   "0",
 	}
@@ -133,7 +133,7 @@ func SubsonicSearchAlbum(query string, page int) ([]Album, error) {
 	return data.Response.SearchResult.Albums, nil
 }
 
-func SubsonicSearchSong(query string, page int) ([]Song, error) {
+func SubsonicSearchSong(query string, offset int) ([]Song, error) {
 	params := map[string]string{
 		"query":        query,
 		"artistCount":  "0",
@@ -141,7 +141,7 @@ func SubsonicSearchSong(query string, page int) ([]Song, error) {
 		"albumCount":   "0",
 		"albumOffset":  "0",
 		"songCount":    "150",
-		"songOffset":   strconv.Itoa(page * 20),
+		"songOffset":   strconv.Itoa(offset),
 	}
 
 	data, err := subsonicGET("/search3", params)
@@ -189,10 +189,11 @@ func SubsonicGetAlbum(id string) ([]Song, error) {
 	return data.Response.Album.Songs, nil
 }
 
-func SubsonicGetAlbumList(searchType string) ([]Album, error) {
+func SubsonicGetAlbumList(searchType string, offset int) ([]Album, error) {
 	params := map[string]string{
-		"type": searchType,
-		"size": "100",
+		"type":   searchType,
+		"size":   "150",
+		"offset": strconv.Itoa(offset),
 	}
 
 	data, err := subsonicGET("/getAlbumList", params)

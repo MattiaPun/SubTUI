@@ -5,9 +5,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/MattiaPun/SubTUI/internal/api"
-	"github.com/MattiaPun/SubTUI/internal/integration"
-	"github.com/MattiaPun/SubTUI/internal/player"
+	"github.com/MattiaPun/SubTUI/v2/internal/api"
+	"github.com/MattiaPun/SubTUI/v2/internal/integration"
+	"github.com/MattiaPun/SubTUI/v2/internal/player"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -34,6 +34,15 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if keyMatches(key, api.AppConfig.Keybinds.Navigation.Select) {
 			return enter(m)
 		}
+
+		if keyMatches(key, api.AppConfig.Keybinds.Search.FilterNext) {
+			return cycleFilter(m, true), nil
+		}
+
+		if keyMatches(key, api.AppConfig.Keybinds.Search.FilterPrev) {
+			return cycleFilter(m, false), nil
+		}
+
 		return typeInput(m, msg)
 	}
 
@@ -62,9 +71,9 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 		case "a":
-			return displaySongAlbum(m)
+			return displayAlbumFromSelected(m)
 		case "r":
-			return displaySongArtist(m)
+			return displayArtistFromSelected(m)
 		default:
 			m.lastKey = ""
 		}
@@ -85,11 +94,11 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	if keyMatches(key, api.AppConfig.Keybinds.Navigation.Down) {
-		return navigateDown(m), nil
+		return navigateDown(m)
 	}
 
 	if keyMatches(key, api.AppConfig.Keybinds.Navigation.Bottom) {
-		return navigateBottom(m), nil
+		return navigateBottom(m)
 	}
 
 	if keyMatches(key, api.AppConfig.Keybinds.Navigation.Select) {
@@ -99,14 +108,6 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// SEARCH KEYBINDS
 	if keyMatches(key, api.AppConfig.Keybinds.Search.FocusSearch) {
 		return focusSearchBar(m), nil
-	}
-
-	if keyMatches(key, api.AppConfig.Keybinds.Search.FilterNext) {
-		return cycleFilter(m, true), nil
-	}
-
-	if keyMatches(key, api.AppConfig.Keybinds.Search.FilterPrev) {
-		return cycleFilter(m, false), nil
 	}
 
 	// LIBRARY KEYBINDS
@@ -270,6 +271,11 @@ func enter(m model) (tea.Model, tea.Cmd) {
 			m.viewMode = viewList
 			m.textInput.Blur()
 
+			// Reset paging
+			m.pageOffset = 0
+			m.pageHasMore = true
+			m.lastSearchQuery = query
+
 			switch m.filterMode {
 			case filterSongs:
 				m.displayMode = displaySongs
@@ -279,7 +285,7 @@ func enter(m model) (tea.Model, tea.Cmd) {
 				m.displayMode = displayArtist
 			}
 
-			return m, searchCmd(query, m.filterMode)
+			return m, searchCmd(query, m.filterMode, 0)
 		}
 
 	case focusMain:
@@ -329,17 +335,29 @@ func enter(m model) (tea.Model, tea.Cmd) {
 
 		if m.cursorSide < albumOffset {
 			m.displayMode = displayAlbums
+			// Initialize pagination state
+			m.pageOffset = 0
+			m.pageHasMore = true
+			m.lastSearchQuery = ""
 			switch m.cursorSide {
 			case 0:
-				return m, getAlbumList("random")
+				m.albumListType = "alphabeticalByArtist"
+				return m, getAlbumList("alphabeticalByArtist", 0)
 			case 1:
-				return m, getAlbumList("starred")
+				m.albumListType = "random"
+				return m, getAlbumList("random", 0)
 			case 2:
-				return m, getAlbumList("newest")
+				m.albumListType = "starred"
+				return m, getAlbumList("starred", 0)
 			case 3:
-				return m, getAlbumList("recent")
+				m.albumListType = "newest"
+				return m, getAlbumList("newest", 0)
 			case 4:
-				return m, getAlbumList("frequent")
+				m.albumListType = "recent"
+				return m, getAlbumList("recent", 0)
+			case 5:
+				m.albumListType = "frequent"
+				return m, getAlbumList("frequent", 0)
 			}
 
 		} else {
@@ -383,7 +401,7 @@ func navigateTop(m model) model {
 	return m
 }
 
-func navigateBottom(m model) model {
+func navigateBottom(m model) (model, tea.Cmd) {
 	switch m.focus {
 	case focusMain:
 
@@ -432,7 +450,7 @@ func navigateBottom(m model) model {
 		}
 	}
 
-	return m
+	return loadMore(m)
 }
 
 func navigateUp(m model) model {
@@ -451,7 +469,7 @@ func navigateUp(m model) model {
 	return m
 }
 
-func navigateDown(m model) model {
+func navigateDown(m model) (model, tea.Cmd) {
 	listLen := 0
 	if m.viewMode == viewQueue {
 		listLen = len(m.queue)
@@ -497,56 +515,75 @@ func navigateDown(m model) model {
 		}
 	}
 
-	return m
+	// Check to see if more has to be loaded
+	return loadMore(m)
 }
 
-func displaySongAlbum(m model) (tea.Model, tea.Cmd) {
-	var targetList []api.Song
-	switch m.viewMode {
-	case viewList:
-		targetList = m.songs
-	case viewQueue:
-		targetList = m.queue
+func displayAlbumFromSelected(m model) (tea.Model, tea.Cmd) {
+	// Only execute when focused on a song
+	if m.focus != focusMain || (m.focus == focusMain && m.displayMode != displaySongs) {
+		return m, nil
 	}
 
-	if len(targetList) != 0 {
-		albumCmd := getAlbumSongs(targetList[m.cursorMain].AlbumID)
-
-		m.viewMode = viewList
-		m.displayModePrev = m.displayMode
-		m.displayMode = displaySongs
-		m.mainOffset = 0
-		m.cursorMain = 0
-		m.loading = true
-
-		return m, albumCmd
+	albumID := ""
+	if m.viewMode == viewList && len(m.songs) != 0 {
+		// album of a songs
+		albumID = m.songs[m.cursorMain].AlbumID
+	} else if m.viewMode == viewQueue && len(m.queue) != 0 {
+		// album of a queued song
+		albumID = m.queue[m.cursorMain].AlbumID
 	}
 
-	return m, nil
+	if albumID == "" {
+		return m, nil
+	}
+
+	m.loading = true
+	m.mainOffset = 0
+	m.cursorMain = 0
+	m.lastSearchQuery = ""
+
+	m.viewMode = viewList
+	m.displayModePrev = m.displayMode
+	m.displayMode = displaySongs
+
+	return m, getAlbumSongs(albumID)
 }
 
-func displaySongArtist(m model) (tea.Model, tea.Cmd) {
-	var targetList []api.Song
-	switch m.viewMode {
-	case viewList:
-		targetList = m.songs
-	case viewQueue:
-		targetList = m.queue
-	}
-	if len(targetList) != 0 {
-		albumCmd := getArtistAlbums(targetList[m.cursorMain].ArtistID)
-
-		m.viewMode = viewList
-		m.displayModePrev = m.displayMode
-		m.displayMode = displayAlbums
-		m.mainOffset = 0
-		m.cursorMain = 0
-		m.loading = true
-
-		return m, albumCmd
+func displayArtistFromSelected(m model) (tea.Model, tea.Cmd) {
+	// Only execute when focused on a song or album
+	if m.focus != focusMain || (m.focus == focusMain && m.displayMode == displayArtist) {
+		return m, nil
 	}
 
-	return m, nil
+	artistID := ""
+	if m.viewMode == viewList {
+		if m.displayMode == displaySongs && len(m.songs) != 0 {
+			// artist of a songs
+			artistID = m.songs[m.cursorMain].ArtistID
+		} else if m.displayMode == displayAlbums && len(m.albums) != 0 {
+			// artist of an album
+			artistID = m.albums[m.cursorMain].ArtistID
+		}
+	} else if m.viewMode == viewQueue && len(m.queue) != 0 {
+		// artist of a queued song
+		artistID = m.queue[m.cursorMain].ArtistID
+	}
+
+	if artistID == "" {
+		return m, nil
+	}
+
+	m.loading = true
+	m.mainOffset = 0
+	m.cursorMain = 0
+	m.lastSearchQuery = ""
+
+	m.viewMode = viewList
+	m.displayModePrev = m.displayMode
+	m.displayMode = displayAlbums
+
+	return m, getArtistAlbums(artistID)
 }
 
 func cycleFilter(m model, forward bool) model {
@@ -1085,6 +1122,40 @@ func ratingMenu(key string, m model) (model, tea.Cmd) {
 		m.cursorPopup = 0
 		m.showRating = !m.showRating
 		return m, cmd
+	}
+
+	return m, nil
+}
+
+// Helper for infinte scrolling
+func loadMore(m model) (model, tea.Cmd) {
+	if m.focus == focusMain && m.pageHasMore && !m.loading {
+		// Songs
+		if m.displayMode == displaySongs && len(m.songs)-m.cursorMain <= 10 && m.lastSearchQuery != "" {
+			m.loading = true
+			m.pageOffset += 150
+			return m, searchCmd(m.lastSearchQuery, filterSongs, m.pageOffset)
+		}
+
+		// Albums
+		if m.displayMode == displayAlbums && len(m.albums)-m.cursorMain <= 10 {
+			m.loading = true
+			m.pageOffset += 150
+
+			// Check if search or sidebar loading
+			if m.lastSearchQuery != "" {
+				return m, searchCmd(m.lastSearchQuery, filterAlbums, m.pageOffset)
+			} else {
+				return m, getAlbumList(m.albumListType, m.pageOffset)
+			}
+		}
+
+		// Artists
+		if m.displayMode == displayArtist && len(m.artists)-m.cursorMain <= 10 && m.lastSearchQuery != "" {
+			m.loading = true
+			m.pageOffset += 150
+			return m, searchCmd(m.lastSearchQuery, filterArtist, m.pageOffset)
+		}
 	}
 
 	return m, nil

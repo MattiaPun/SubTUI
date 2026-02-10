@@ -3,7 +3,7 @@ package ui
 import (
 	"time"
 
-	"github.com/MattiaPun/SubTUI/internal/player"
+	"github.com/MattiaPun/SubTUI/v2/internal/player"
 	tea "github.com/charmbracelet/bubbletea"
 )
 

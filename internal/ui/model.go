@@ -1,13 +1,13 @@
 package ui
 
 import (
-	"github.com/MattiaPun/SubTUI/internal/api"
-	"github.com/MattiaPun/SubTUI/internal/integration"
-	"github.com/MattiaPun/SubTUI/internal/player"
+	"github.com/MattiaPun/SubTUI/v2/internal/api"
+	"github.com/MattiaPun/SubTUI/v2/internal/integration"
+	"github.com/MattiaPun/SubTUI/v2/internal/player"
 	"github.com/charmbracelet/bubbles/textinput"
 )
 
-var albumTypes = []string{"Random", "Favorites", "Recently Added", "Recently Played", "Most Played"}
+var albumTypes = []string{"All", "Random", "Favorites", "Recently Added", "Recently Played", "Most Played"}
 
 // --- MODEL ---
 type model struct {
@@ -69,6 +69,12 @@ type model struct {
 	showPlaylists bool
 	showRating    bool
 	helpModel     HelpModel
+
+	// Pagination State
+	lastSearchQuery string
+	albumListType   string
+	pageOffset      int
+	pageHasMore     bool
 }
 
 type HelpModel struct {

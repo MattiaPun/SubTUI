@@ -6,9 +6,9 @@ import (
 	"math"
 	"strings"
 
-	"github.com/MattiaPun/SubTUI/internal/api"
-	"github.com/MattiaPun/SubTUI/internal/integration"
-	"github.com/MattiaPun/SubTUI/internal/player"
+	"github.com/MattiaPun/SubTUI/v2/internal/api"
+	"github.com/MattiaPun/SubTUI/v2/internal/integration"
+	"github.com/MattiaPun/SubTUI/v2/internal/player"
 	"github.com/atotto/clipboard"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gen2brain/beeep"
@@ -207,30 +207,49 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 
 func (m model) handleSongResult(msg songsResultMsg) (tea.Model, tea.Cmd) {
 	m.loading = false
-	m.songs = msg.songs
-	m.cursorMain = 0
-	m.mainOffset = 0
 	m.focus = focusMain
+
+	if m.pageOffset > 0 { // Append: paging
+		m.songs = append(m.songs, msg.songs...)
+	} else { // Replace: no paging
+		m.songs = msg.songs
+		m.cursorMain = 0
+		m.mainOffset = 0
+	}
+
+	m.pageHasMore = (len(msg.songs) == 150)
 
 	return m, nil
 }
 
 func (m model) handleAlbumResult(msg albumsResultMsg) (tea.Model, tea.Cmd) {
 	m.loading = false
-	m.albums = msg.albums
-	m.cursorMain = 0
-	m.mainOffset = 0
 	m.focus = focusMain
+	m.pageHasMore = (len(msg.albums) == 150)
+
+	if m.pageOffset > 0 { // Append: paging
+		m.albums = append(m.albums, msg.albums...)
+	} else { // Replace: no paging
+		m.albums = msg.albums
+		m.cursorMain = 0
+		m.mainOffset = 0
+	}
 
 	return m, nil
 }
 
 func (m model) handleArtistsResult(msg artistsResultMsg) (tea.Model, tea.Cmd) {
 	m.loading = false
-	m.artists = msg.artists
-	m.cursorMain = 0
-	m.mainOffset = 0
 	m.focus = focusMain
+	m.pageHasMore = (len(msg.artists) == 150)
+
+	if m.pageOffset > 0 { // Append: paging
+		m.artists = append(m.artists, msg.artists...)
+	} else { // Replace: no paging
+		m.artists = msg.artists
+		m.cursorMain = 0
+		m.mainOffset = 0
+	}
 
 	return m, nil
 }
