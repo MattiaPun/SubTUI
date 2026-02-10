@@ -24,6 +24,7 @@ func main() {
 	// Debug flag
 	debug := flag.Bool("debug", false, "Enable debug logging to subtui.log")
 	showVersion := flag.Bool("v", false, "Print version and exit")
+	shuffleMode := flag.Bool("shuffle", false, "Start with random albums, shuffle them, and begin playback")
 	flag.Parse()
 
 	// Check for version
@@ -66,7 +67,7 @@ func main() {
 	defer player.ShutdownPlayer()
 
 	// Init TUI
-	p := tea.NewProgram(ui.InitialModel(), tea.WithAltScreen())
+	p := tea.NewProgram(ui.InitialModel(*shuffleMode), tea.WithAltScreen())
 
 	// Start background services
 	instance := integration.Init(p)

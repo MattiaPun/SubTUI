@@ -51,6 +51,7 @@ func InitPlayer() error {
 		"--gapless-audio=yes",
 		"--prefetch-playlist=yes",
 		"--replaygain=" + replayGain,
+		"--load-scripts=no", // Disable MPV's MPRIS to avoid duplicate sessions
 	}
 
 	mpvCmd = exec.Command("mpv", args...)

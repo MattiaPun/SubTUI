@@ -6,7 +6,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-func InitialModel() model {
+func InitialModel(shuffleMode bool) model {
 	ti := textinput.New()
 	ti.Placeholder = "Search songs..."
 	ti.Focus()
@@ -18,6 +18,13 @@ func InitialModel() model {
 		startMode = viewLogin
 	}
 
+	albumListType := ""
+	displayMode := displaySongs
+	if shuffleMode {
+		albumListType = "random"
+		displayMode = displayAlbums
+	}
+
 	return model{
 		textInput:        ti,
 		songs:            []api.Song{},
@@ -27,7 +34,7 @@ func InitialModel() model {
 		cursorPopup:      0,
 		viewMode:         startMode,
 		filterMode:       filterSongs,
-		displayMode:      displaySongs,
+		displayMode:      displayMode,
 		starredMap:       make(map[string]bool),
 		lastPlayedSongID: "",
 		loginInputs:      initialLoginInputs(),
@@ -37,6 +44,9 @@ func InitialModel() model {
 		helpModel:        NewHelpModel(),
 		discordRPC:       api.AppConfig.App.DiscordRPC,
 		notify:           api.AppConfig.App.Notifications,
+		albumListType:    albumListType,
+		startupRandom:    shuffleMode,
+		startupShuffle:   shuffleMode,
 	}
 }
 

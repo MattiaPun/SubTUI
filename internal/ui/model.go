@@ -75,6 +75,11 @@ type model struct {
 	albumListType   string
 	pageOffset      int
 	pageHasMore     bool
+
+	// Startup Flags
+	startupRandom   bool
+	startupShuffle  bool
+	autoPlayPending bool
 }
 
 type HelpModel struct {

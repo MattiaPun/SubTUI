@@ -67,6 +67,23 @@ go build .
 ./subtui
 ```
 
+## Command-Line Flags
+
+SubTUI supports the following command-line flags:
+
+* `--debug`: Enable debug logging to `subtui.log`
+* `--shuffle`: Start with random albums, shuffle them, and automatically begin playback
+* `-v`: Print version and exit
+
+Example usage:
+```bash
+# Start with random shuffled music and begin playing immediately
+./subtui --shuffle
+
+# Enable debug logging
+./subtui --debug
+```
+
 ## Configuration
 On the first launch, SubTUI will generate a default configuration file at: `~/.config/subtui/config.toml`.
  **Security Note**: Your credentials are stored in plaintext

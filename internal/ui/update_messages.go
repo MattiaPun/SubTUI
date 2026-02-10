@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"math/rand"
 	"strings"
+	"time"
 
 	"github.com/MattiaPun/SubTUI/v2/internal/api"
 	"github.com/MattiaPun/SubTUI/v2/internal/integration"
@@ -65,12 +67,20 @@ func (m model) handleLoginResult(msg loginResultMsg) (tea.Model, tea.Cmd) {
 	m.focus = focusMain
 	m.loginErr = ""
 
-	return m, tea.Batch(
+	// Build command batch
+	cmds := []tea.Cmd{
 		syncPlayerCmd(),
 		getPlaylists(),
 		getPlayQueue(),
 		getStarredCmd(),
-	)
+	}
+
+	// If shuffle mode is enabled, fetch random albums after login
+	if m.albumListType == "random" {
+		cmds = append(cmds, getAlbumList("random", 0))
+	}
+
+	return m, tea.Batch(cmds...)
 }
 
 func (m model) handlePlaylistResult(msg playlistResultMsg) (tea.Model, tea.Cmd) {
@@ -219,6 +229,30 @@ func (m model) handleSongResult(msg songsResultMsg) (tea.Model, tea.Cmd) {
 
 	m.pageHasMore = (len(msg.songs) == 150)
 
+	// Handle auto-play (from --random flag)
+	if m.autoPlayPending && len(m.songs) > 0 {
+		m.autoPlayPending = false
+
+		// Apply shuffle if requested
+		if m.startupShuffle {
+			m.startupShuffle = false
+			newQueue := make([]api.Song, len(m.songs))
+			copy(newQueue, m.songs)
+			m.queue = newQueue
+
+			// Shuffle the queue
+			r := rand.New(rand.NewSource(time.Now().UnixNano()))
+			r.Shuffle(len(m.queue), func(i, j int) {
+				m.queue[i], m.queue[j] = m.queue[j], m.queue[i]
+			})
+
+			return m, m.playQueueIndex(0, false)
+		}
+
+		// Play normally without shuffle
+		return m, m.setQueue(0)
+	}
+
 	return m, nil
 }
 
@@ -233,6 +267,16 @@ func (m model) handleAlbumResult(msg albumsResultMsg) (tea.Model, tea.Cmd) {
 		m.albums = msg.albums
 		m.cursorMain = 0
 		m.mainOffset = 0
+	}
+
+	// Handle startup random mode: automatically play first album
+	if m.startupRandom && len(m.albums) > 0 {
+		m.startupRandom = false // Only do this once
+		m.autoPlayPending = true
+		selectedAlbum := m.albums[0]
+		m.loading = true
+		m.displayMode = displaySongs
+		return m, getAlbumSongs(selectedAlbum.ID)
 	}
 
 	return m, nil
