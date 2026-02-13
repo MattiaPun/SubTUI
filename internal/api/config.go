@@ -2,6 +2,7 @@ package api
 
 import (
 	_ "embed"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -14,11 +15,18 @@ import (
 var defaultConfig []byte
 var AppConfig Config
 
+//go:embed server.toml
+var defaultServerConfig []byte
+var AppServerConfig ServerConfig
+
 type Config struct {
-	Server   Server   `toml:"server"`
 	App      App      `toml:"app"`
 	Theme    Theme    `toml:"theme"`
 	Keybinds Keybinds `toml:"keybinds"`
+}
+
+type ServerConfig struct {
+	Server Server `toml:"server"`
 }
 
 type Server struct {
@@ -113,16 +121,16 @@ type OtherKeybinds struct {
 	CreateShareLink     []string `toml:"create_share_link"`
 }
 
-func getConfigPath() string {
+func getConfigPath(configName string) string {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return ""
 	}
 
-	return filepath.Join(home, ".config", "subtui", "config.toml")
+	return filepath.Join(home, ".config", "subtui", configName)
 }
 
-func createDefaultConfig(path string) error {
+func createDefaultConfig(path string, content []byte, label string) error {
 	// Create config dir
 	dir := filepath.Dir(path)
 	err := os.MkdirAll(dir, 0755)
@@ -131,47 +139,67 @@ func createDefaultConfig(path string) error {
 	}
 
 	// Write Default config
-	if err := os.WriteFile(path, defaultConfig, 0644); err != nil {
+	if err := os.WriteFile(path, content, 0644); err != nil {
 		return err
 	}
 
-	log.Printf("[CONFIG] Created default config file at %s", path)
+	log.Printf("[CONFIG] Created default %s config file at %s", label, path)
 	return nil
 }
 
 func LoadConfig() error {
-	// Get config path
-	configPath := getConfigPath()
+	// Get config paths
+	configPath := getConfigPath("config.toml")
 	if configPath == "" {
 		return fmt.Errorf("could not determine config path")
 	}
+	serverConfigPath := getConfigPath("server.toml")
+	if serverConfigPath == "" {
+		return fmt.Errorf("could not determine server config path")
+	}
 
-	// Create config file if non exists
+	// Create config files if missing
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		if err := createDefaultConfig(configPath); err != nil {
+		if err := createDefaultConfig(configPath, defaultConfig, "app"); err != nil {
 			return fmt.Errorf("failed to create default config: %w", err)
 		}
 	}
+	if _, err := os.Stat(serverConfigPath); os.IsNotExist(err) {
+		if err := createDefaultConfig(serverConfigPath, defaultServerConfig, "server"); err != nil {
+			return fmt.Errorf("failed to create default server config: %w", err)
+		}
+	}
 
-	// Read config file
-	file, err := os.ReadFile(configPath)
+	// Read config files
+	configFile, err := os.ReadFile(configPath)
+	if err != nil {
+		return fmt.Errorf("could not open config file: %v", err)
+	}
+	serverConfigFile, err := os.ReadFile(serverConfigPath)
 	if err != nil {
 		return fmt.Errorf("could not open config file: %v", err)
 	}
 
-	// Process config file
-	if err := toml.Unmarshal(file, &AppConfig); err != nil {
+	// Process config files
+	if err := toml.Unmarshal(configFile, &AppConfig); err != nil {
 		return fmt.Errorf("could not decode config: %v", err)
+	}
+	if err := toml.Unmarshal(serverConfigFile, &AppServerConfig); err != nil {
+		return fmt.Errorf("could not decode server config: %v", err)
 	}
 
 	return nil
 }
 
 func SaveConfig() error {
-	// Get config path
-	configPath := getConfigPath()
+	// Get config paths
+	configPath := getConfigPath("config.toml")
 	if configPath == "" {
 		return fmt.Errorf("could not determine config path")
+	}
+	serverConfigPath := getConfigPath("server.toml")
+	if serverConfigPath == "" {
+		return fmt.Errorf("could not determine server config path")
 	}
 
 	// Create config dir
@@ -179,12 +207,19 @@ func SaveConfig() error {
 		return err
 	}
 
-	// Process config
-	data, err := toml.Marshal(AppConfig)
+	// Process configs
+	configData, err := toml.Marshal(AppConfig)
+	if err != nil {
+		return err
+	}
+	serverConfigData, err := toml.Marshal(AppServerConfig)
 	if err != nil {
 		return err
 	}
 
-	// Write config
-	return os.WriteFile(configPath, data, 0644)
+	// Write configs
+	return errors.Join(
+		os.WriteFile(configPath, configData, 0644),
+		os.WriteFile(serverConfigPath, serverConfigData, 0600),
+	)
 }

@@ -25,11 +25,11 @@ func generateSalt() string {
 
 func getAuthParams() url.Values {
 	salt := generateSalt()
-	hash := md5.Sum([]byte(AppConfig.Server.Password + salt))
+	hash := md5.Sum([]byte(AppServerConfig.Server.Password + salt))
 	token := hex.EncodeToString(hash[:])
 
 	v := url.Values{}
-	v.Set("u", AppConfig.Server.Username)
+	v.Set("u", AppServerConfig.Server.Username)
 	v.Set("t", token)
 	v.Set("s", salt)
 	v.Set("v", "1.16.1")
@@ -40,7 +40,7 @@ func getAuthParams() url.Values {
 }
 
 func subsonicGET(endpoint string, params map[string]string) (*SubsonicResponse, error) {
-	baseUrl := AppConfig.Server.URL + "/rest" + endpoint
+	baseUrl := AppServerConfig.Server.URL + "/rest" + endpoint
 
 	v := getAuthParams()
 
@@ -73,7 +73,7 @@ func subsonicGET(endpoint string, params map[string]string) (*SubsonicResponse, 
 
 func SubsonicLoginCheck() error {
 	params := map[string]string{
-		"username": AppConfig.Server.Username,
+		"username": AppServerConfig.Server.Username,
 	}
 
 	data, err := subsonicGET("/getUser", params)
@@ -256,7 +256,7 @@ func SubsonicRate(ID string, rating int) {
 }
 
 func SubsonicStream(id string) string {
-	baseUrl := AppConfig.Server.URL + "/rest/stream"
+	baseUrl := AppServerConfig.Server.URL + "/rest/stream"
 
 	v := getAuthParams()
 
@@ -281,7 +281,7 @@ func SubsonicScrobble(id string, submission bool) {
 }
 
 func SubsonicCoverArtUrl(id string, size int) string {
-	baseUrl := AppConfig.Server.URL + "/rest/getCoverArt"
+	baseUrl := AppServerConfig.Server.URL + "/rest/getCoverArt"
 
 	v := getAuthParams()
 
@@ -309,7 +309,7 @@ func SubsonicCoverArt(id string) ([]byte, error) {
 }
 
 func SubsonicSaveQueue(ids []string, currentID string) {
-	baseUrl := AppConfig.Server.URL + "/rest/savePlayQueue"
+	baseUrl := AppServerConfig.Server.URL + "/rest/savePlayQueue"
 
 	v := getAuthParams()
 

@@ -55,7 +55,7 @@ func main() {
 
 	// Log Startup
 	if *debug {
-		log.Printf("Config Loaded: URL=%s User=%s", api.AppConfig.Server.URL, api.AppConfig.Server.Username)
+		log.Printf("Config Loaded: URL=%s User=%s", api.AppServerConfig.Server.URL, api.AppServerConfig.Server.Username)
 	}
 
 	// Init variables

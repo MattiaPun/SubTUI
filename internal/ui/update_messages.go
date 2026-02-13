@@ -43,9 +43,9 @@ func (m model) handleLoginResult(msg loginResultMsg) (tea.Model, tea.Cmd) {
 		}
 
 		m.viewMode = viewLogin
-		m.loginInputs[0].SetValue(api.AppConfig.Server.URL)
-		m.loginInputs[1].SetValue(api.AppConfig.Server.Username)
-		m.loginInputs[2].SetValue(api.AppConfig.Server.Password)
+		m.loginInputs[0].SetValue(api.AppServerConfig.Server.URL)
+		m.loginInputs[1].SetValue(api.AppServerConfig.Server.Username)
+		m.loginInputs[2].SetValue(api.AppServerConfig.Server.Password)
 
 		m.loginFocus = 0
 		m.loginInputs[0].Focus()

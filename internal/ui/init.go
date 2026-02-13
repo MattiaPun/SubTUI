@@ -14,7 +14,7 @@ func InitialModel() model {
 	ti.Width = 50
 
 	startMode := viewList
-	if api.AppConfig.Server.Username == "" || api.AppConfig.Server.Password == "" || api.AppConfig.Server.URL == "" {
+	if api.AppServerConfig.Server.Username == "" || api.AppServerConfig.Server.Password == "" || api.AppServerConfig.Server.URL == "" {
 		startMode = viewLogin
 	}
 

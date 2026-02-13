@@ -1029,9 +1029,9 @@ func login(m model, msg tea.Msg) (model, tea.Cmd) {
 					return m, nil
 				}
 
-				api.AppConfig.Server.URL = strings.TrimSuffix(domain, "/")
-				api.AppConfig.Server.Username = username
-				api.AppConfig.Server.Password = password
+				api.AppServerConfig.Server.URL = strings.TrimSuffix(domain, "/")
+				api.AppServerConfig.Server.Username = username
+				api.AppServerConfig.Server.Password = password
 
 				return m, tea.Batch(
 					attemptLoginCmd(),
