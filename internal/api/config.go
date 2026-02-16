@@ -15,7 +15,7 @@ import (
 var defaultConfig []byte
 var AppConfig Config
 
-//go:embed server.toml
+//go:embed credentials.toml
 var defaultServerConfig []byte
 var AppServerConfig ServerConfig
 
@@ -153,7 +153,7 @@ func LoadConfig() error {
 	if configPath == "" {
 		return fmt.Errorf("could not determine config path")
 	}
-	serverConfigPath := getConfigPath("server.toml")
+	serverConfigPath := getConfigPath("credentials.toml")
 	if serverConfigPath == "" {
 		return fmt.Errorf("could not determine server config path")
 	}
@@ -197,7 +197,7 @@ func SaveConfig() error {
 	if configPath == "" {
 		return fmt.Errorf("could not determine config path")
 	}
-	serverConfigPath := getConfigPath("server.toml")
+	serverConfigPath := getConfigPath("credentials.toml")
 	if serverConfigPath == "" {
 		return fmt.Errorf("could not determine server config path")
 	}

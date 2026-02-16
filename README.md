@@ -68,10 +68,10 @@ go build .
 ```
 
 ## Configuration
-On the first launch, SubTUI will generate default configuration files at: `~/.config/subtui/config.toml` and `~/.config/subtui/server.toml`.
- **Security Note**: Your credentials are stored in plaintext in the security.toml file
+On the first launch, SubTUI will generate default configuration files at: `~/.config/subtui/config.toml` and `~/.config/subtui/credentials.toml`.
+ **Security Note**: Your credentials are stored in plaintext in the `credentials.toml` file
 
-You can edit these files to save your credentials, change the color theme, or remap any keybind. You can find the default configuration templates in the repository at [internal/api/config.toml](internal/api/config.toml) and [internal/api/server.toml](interlan/api/server.toml)
+You can edit these files to save your credentials, change the color theme, or remap any keybind. You can find the default configuration templates in the repository at [internal/api/config.toml](internal/api/config.toml) and [internal/api/credentials.toml](interlan/api/credentials.toml)
 
 ## Default keybinds
 **Note**: All keybinds below are the defaults. You can customize them in your config.toml.
