@@ -399,13 +399,8 @@ func mainSongsContent(m model, mainWidth int, mainHeight int) string {
 			}
 		}
 
-		if m.viewMode == viewQueue && i == m.queueIndex {
+		if song.ID == m.queue[m.queueIndex].ID {
 			style = style.Foreground(Theme.Special)
-			if m.cursorMain == i {
-				cursor = "> "
-			} else {
-				cursor = "  "
-			}
 		}
 
 		starIcon := " "
