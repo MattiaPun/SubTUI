@@ -399,8 +399,18 @@ func (m model) handleShuffledSongs(msg shuffledSongsMsg) (tea.Model, tea.Cmd) {
 		m.songs = msg.songs
 	}
 
-	shuffledQueue := make([]api.Song, len(msg.songs))
-	copy(shuffledQueue, msg.songs)
+	songs := make([]api.Song, len(msg.songs))
+	songs = applyExclusionFilters(m, msg.songs)
+
+	var filteredSongs []api.Song
+	for _, song := range songs {
+		if !song.Filtered {
+			filteredSongs = append(filteredSongs, song)
+		}
+	}
+
+	shuffledQueue := make([]api.Song, len(filteredSongs))
+	copy(shuffledQueue, filteredSongs)
 
 	rand.Shuffle(len(shuffledQueue), func(i, j int) {
 		shuffledQueue[i], shuffledQueue[j] = shuffledQueue[j], shuffledQueue[i]
