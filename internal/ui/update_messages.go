@@ -399,8 +399,7 @@ func (m model) handleShuffledSongs(msg shuffledSongsMsg) (tea.Model, tea.Cmd) {
 		m.songs = msg.songs
 	}
 
-	songs := make([]api.Song, len(msg.songs))
-	songs = applyExclusionFilters(m, msg.songs)
+	songs := applyExclusionFilters(m, msg.songs)
 
 	var filteredSongs []api.Song
 	for _, song := range songs {
