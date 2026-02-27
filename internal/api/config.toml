@@ -23,6 +23,17 @@ max_play_count = 0 # Exclude songs with a play count less than or equal to this 
 exclude_favorites = false # Set to true to exclude songs that are marked as a favorite/starred
 max_rating = 0 # Exclude songs with a rating less than or equal to this number (1-5). 0 to disable.
 
+[columns]
+track_number = false
+title = true
+artist = true
+album = true
+year = false
+genre = false
+rating = false
+play_count = false
+duration = true
+
 [keybinds]
   [keybinds.global]
   cycle_focus_next = ["tab"]

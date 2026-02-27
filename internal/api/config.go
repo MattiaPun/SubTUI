@@ -24,6 +24,7 @@ type Config struct {
 	Theme    Theme    `toml:"theme"`
 	Filters  Filters  `toml:"filters"`
 	Keybinds Keybinds `toml:"keybinds"`
+	Columns  Columns  `toml:"columns"`
 }
 
 type ServerConfig struct {
@@ -66,6 +67,18 @@ type Filters struct {
 	MaxPlayCount     int      `toml:"max_play_count"`
 	ExcludeFavorites bool     `toml:"exclude_favorites"`
 	MaxRating        int      `toml:"max_rating"`
+}
+
+type Columns struct {
+	ShowTrackNumber bool `toml:"track_number"`
+	ShowTitle       bool `toml:"title"`
+	ShowArtist      bool `toml:"artist"`
+	ShowAlbum       bool `toml:"album"`
+	ShowYear        bool `toml:"year"`
+	ShowGenre       bool `toml:"genre"`
+	ShowRating      bool `toml:"rating"`
+	ShowPlayCount   bool `toml:"play_count"`
+	ShowDuration    bool `toml:"duration"`
 }
 
 type Keybinds struct {
