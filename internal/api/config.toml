@@ -27,7 +27,7 @@ max_rating = 0 # Exclude songs with a rating less than or equal to this number (
   [keybinds.global]
   cycle_focus_next = ["tab"]
   cycle_focus_prev = ["shift+tab"]
-  back             = ["backspace"]
+  back             = ["backspace", "esc"]
   help             = ["?"]
   quit             = ["q"]
   hard_quit        = ["ctrl+c"]

@@ -45,6 +45,10 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return typeInput(m, msg)
 	}
 
+	if keyMatches(key, api.AppConfig.Keybinds.Global.Back) {
+		return goBack(m)
+	}
+
 	if m.showPlaylists {
 		return playlistsMenu(key, m)
 	}
@@ -79,9 +83,6 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	// GLOBAL KEYBINDS
-	if keyMatches(key, api.AppConfig.Keybinds.Global.Back) {
-		return goBack(m)
-	}
 
 	if keyMatches(key, api.AppConfig.Keybinds.Global.Quit) {
 		return quit(m, msg)
@@ -399,6 +400,14 @@ func playShuffeled(m model) (tea.Model, tea.Cmd) {
 }
 
 func goBack(m model) (tea.Model, tea.Cmd) {
+	if m.showHelp || m.showPlaylists || m.showRating {
+		m.showHelp = false
+		m.showPlaylists = false
+		m.showRating = false
+
+		return m, nil
+	}
+
 	if m.viewMode == viewQueue {
 		return toggleQueue(m), nil
 	}
