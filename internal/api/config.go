@@ -53,6 +53,7 @@ type Theme struct {
 	Subtle    []string `toml:"subtle"`
 	Highlight []string `toml:"highlight"`
 	Special   []string `toml:"special"`
+	Filtered  []string `toml:"filtered"`
 }
 
 type Filters struct {

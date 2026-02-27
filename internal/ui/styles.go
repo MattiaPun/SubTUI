@@ -9,6 +9,7 @@ type Styles struct {
 	Subtle    lipgloss.AdaptiveColor
 	Highlight lipgloss.AdaptiveColor
 	Special   lipgloss.AdaptiveColor
+	Filtered  lipgloss.AdaptiveColor
 }
 
 var Theme Styles
@@ -38,6 +39,7 @@ func InitStyles() {
 	Theme.Subtle = checkColors(api.AppConfig.Theme.Subtle)
 	Theme.Highlight = checkColors(api.AppConfig.Theme.Highlight)
 	Theme.Special = checkColors(api.AppConfig.Theme.Special)
+	Theme.Filtered = checkColors(api.AppConfig.Theme.Filtered)
 
 	// Global Borders
 	borderStyle = lipgloss.NewStyle().

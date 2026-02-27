@@ -9,6 +9,7 @@ mouse_support         = false
 subtle    = ["#D9DCCF", "#6B6B6BFF"] 
 highlight = ["#874BFD", "#7D56F4"]
 special   = ["#43BF6D", "#73F59F"]
+filtered  = ["#A9A9A9", "#555555"]
 
 [filters]
 titles = [] # Exclude songs with titles containing these strings

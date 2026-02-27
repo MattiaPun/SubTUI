@@ -134,7 +134,17 @@ func getSelectedSongs(m model) []api.Song {
 					return []api.Song{}
 				}
 
-				return applyExclusionFilters(m, songs)
+				songs = applyExclusionFilters(m, songs)
+
+				var filteredSongs []api.Song
+				for _, song := range songs {
+
+					if !song.Filtered {
+						filteredSongs = append(filteredSongs, song)
+					}
+				}
+
+				return filteredSongs
 			}
 		case viewQueue:
 			return []api.Song{m.queue[m.cursorMain]}
@@ -183,14 +193,11 @@ func applyExclusionFilters(m model, songs []api.Song) []api.Song {
 		return songs
 	}
 
-	var filtered []api.Song
-	for _, song := range songs {
-		if !isSongExcluded(m, song, filters) {
-			filtered = append(filtered, song)
-		}
+	for i := range songs {
+		songs[i].Filtered = isSongExcluded(m, songs[i], filters)
 	}
 
-	return filtered
+	return songs
 }
 
 func isSongExcluded(m model, song api.Song, filters api.Filters) bool {

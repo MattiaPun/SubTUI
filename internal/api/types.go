@@ -84,6 +84,7 @@ type Song struct {
 	Note         string   `json:"comment"`
 	Path         string   `json:"path"`
 	PlayCount    int      `json:"playCount"`
+	Filtered     bool
 }
 
 type Playlist struct {

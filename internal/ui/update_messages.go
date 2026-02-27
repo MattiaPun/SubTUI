@@ -321,15 +321,17 @@ func (m model) handleSongResult(msg songsResultMsg) (tea.Model, tea.Cmd) {
 	m.loading = false
 	m.focus = focusMain
 
+	songs := applyExclusionFilters(m, msg.songs)
+
 	if m.pageOffset > 0 { // Append: paging
 		m.songs = append(m.songs, msg.songs...)
 	} else { // Replace: no paging
-		m.songs = msg.songs
+		m.songs = songs
 		m.cursorMain = 0
 		m.mainOffset = 0
 	}
 
-	m.pageHasMore = (len(msg.songs) == 150)
+	m.pageHasMore = (len(songs) == 150)
 
 	return m, nil
 }

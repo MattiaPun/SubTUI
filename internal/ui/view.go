@@ -399,6 +399,10 @@ func mainSongsContent(m model, mainWidth int, mainHeight int) string {
 			}
 		}
 
+		if song.Filtered {
+			style = style.Foreground(Theme.Filtered)
+		}
+
 		if song.ID == m.queue[m.queueIndex].ID {
 			style = style.Foreground(Theme.Special)
 		}
