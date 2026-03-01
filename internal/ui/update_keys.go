@@ -993,15 +993,21 @@ func toggleAddRatingPopup(m model) model {
 
 	switch m.displayMode {
 	case displaySongs:
-		if (m.viewMode == viewList && len(m.songs) > 0 && m.songs[m.cursorMain].ID != "") || (m.viewMode == viewQueue && len(m.queue) > 0 && m.queue[m.cursorMain].ID != "") {
+		if m.viewMode == viewList && len(m.songs) > 0 && m.songs[m.cursorMain].ID != "" {
+			m.cursorPopup = m.songs[m.cursorMain].Rating
+			m.showRating = !m.showRating
+		} else if m.viewMode == viewQueue && len(m.queue) > 0 && m.queue[m.cursorMain].ID != "" {
+			m.cursorPopup = m.queue[m.cursorMain].Rating
 			m.showRating = !m.showRating
 		}
 	case displayAlbums:
 		if len(m.albums) > 0 && m.albums[m.cursorMain].ID != "" {
+			m.cursorPopup = m.albums[m.cursorMain].Rating
 			m.showRating = !m.showRating
 		}
 	case displayArtist:
 		if len(m.artists) > 0 && m.artists[m.cursorMain].ID != "" {
+			m.cursorPopup = m.artists[m.cursorMain].Rating
 			m.showRating = !m.showRating
 		}
 	}
@@ -1158,25 +1164,26 @@ func ratingMenu(key string, m model) (model, tea.Cmd) {
 		m.cursorPopup--
 	} else if keyMatches(key, api.AppConfig.Keybinds.Navigation.Down) && m.cursorPopup < 5 {
 		m.cursorPopup++
-	} else if keyMatches(key, api.AppConfig.Keybinds.Navigation.Select) {
-		inBounds := cursorInBounds(m)
+	} else if keyMatches(key, api.AppConfig.Keybinds.Navigation.Select) && cursorInBounds(m) {
 
 		switch m.displayMode {
 		case displaySongs:
-			if m.viewMode == viewList && inBounds {
+			switch m.viewMode {
+			case viewList:
+				m.songs[m.cursorMain].Rating = m.cursorPopup
 				cmd = addRatingCmd(m.songs[m.cursorMain].ID, m.cursorPopup)
-			} else if m.viewMode == viewQueue && inBounds {
+			case viewQueue:
+				m.songs[m.cursorMain].Rating = m.cursorPopup
 				cmd = addRatingCmd(m.queue[m.cursorMain].ID, m.cursorPopup)
 			}
 		case displayAlbums:
-			if inBounds {
-				cmd = addRatingCmd(m.albums[m.cursorMain].ID, m.cursorPopup)
-			}
+			cmd = addRatingCmd(m.albums[m.cursorMain].ID, m.cursorPopup)
+			m.albums[m.cursorMain].Rating = m.cursorPopup
 		case displayArtist:
-			if inBounds {
-				cmd = addRatingCmd(m.artists[m.cursorMain].ID, m.cursorPopup)
-			}
+			cmd = addRatingCmd(m.artists[m.cursorMain].ID, m.cursorPopup)
+			m.artists[m.cursorMain].Rating = m.cursorPopup
 		}
+
 		m.cursorPopup = 0
 		m.showRating = !m.showRating
 		return m, cmd

@@ -57,8 +57,9 @@ type SearchResult3 struct {
 }
 
 type Artist struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Rating int    `json:"userRating"`
 }
 
 type Album struct {
@@ -67,6 +68,7 @@ type Album struct {
 	Artist   string `json:"artist"`
 	ArtistID string `json:"artistId"`
 	Duration int64  `json:"duration"`
+	Rating   int    `json:"userRating"`
 }
 
 type Song struct {
