@@ -418,7 +418,7 @@ func mainSongsContent(m model, mainWidth int, mainHeight int) string {
 		}
 
 		// Display current playing song
-		if song.ID == m.queue[m.queueIndex].ID {
+		if len(m.queue) > 0 && song.ID == m.queue[m.queueIndex].ID {
 			style = style.Foreground(Theme.Special)
 		}
 
