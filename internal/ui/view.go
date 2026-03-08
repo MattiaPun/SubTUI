@@ -85,11 +85,7 @@ func (m model) BaseView() string {
 
 	// SIZING
 	headerHeight := 1
-
-	footerHeight := int(float64(m.height) * 0.10)
-	if footerHeight < 5 {
-		footerHeight = 5
-	}
+	footerHeight := 6
 
 	mainHeight := m.height - headerHeight - footerHeight - (3 * 2) // 3 sections with each 2 borders (top and bottom)
 	if mainHeight < 0 {
@@ -611,99 +607,118 @@ func mainArtistContent(m model, mainWidth int, mainHeight int) string {
 }
 
 func footerContent(m model) string {
-	title := ""
-	artistAlbumText := ""
+	var content string
+
+	if api.AppConfig.Theme.DisplayAlbumArt && m.coverArt != nil {
+		albumArt := m.coverMosaic.Render(m.coverArt)
+		infoText := footerInformation(m, m.width-16)
+
+		content = lipgloss.JoinHorizontal(lipgloss.Left, "  ", albumArt, "  ", infoText)
+	} else {
+		infoText := footerInformation(m, m.width-6)
+
+		content = lipgloss.JoinHorizontal(lipgloss.Left, "  ", infoText, "  ")
+	}
+
+	return "\n" + content
+}
+
+func footerInformation(m model, width int) string {
+	var topRow string
+	var middleRow string
+	var bottomRow string
+
+	// Top row
+	var songTitle string
+	var notifcationStatus string
 
 	if m.playerStatus.Title == "<nil>" {
-		title = "Nothing playing"
-		artistAlbumText = ""
+		songTitle = "Nothing playing"
 	} else if strings.Contains(m.playerStatus.Title, "stream?c=SubTUI") {
-		title = "Loading..."
-		artistAlbumText = ""
+		songTitle = "Loading..."
 	} else {
-		title = api.SanitizeDisplayString(m.playerStatus.Title)
-		artistAlbumText = api.SanitizeDisplayString(m.playerStatus.Artist + " - " + m.playerStatus.Album)
+		songTitle = api.SanitizeDisplayString(m.playerStatus.Title)
 	}
 
-	notifyText := ""
 	if !m.notify {
-		notifyText = "[Silent]"
+		notifcationStatus = "[Silent]"
 	}
 
-	const borderWidth = 2
-	const spacing = 3
+	topRowGap := width - runewidth.StringWidth(songTitle) - runewidth.StringWidth(notifcationStatus)
+	if topRowGap < 0 {
+		topRowGap = 0
+	}
+	topRow = lipgloss.JoinHorizontal(
+		lipgloss.Center,
+		lipgloss.NewStyle().Foreground(Theme.Highlight).Render(songTitle),
+		strings.Repeat(" ", topRowGap),
+		notifcationStatus,
+	)
 
-	topRowGap := m.width - borderWidth - 2*spacing - runewidth.StringWidth(notifyText) - runewidth.StringWidth(title)
-	if topRowGap > 0 {
-		title += strings.Repeat(" ", topRowGap) + notifyText
+	// Middle row
+	var songAlbumArtistInfo string
+	var loopStatus string
+	var volumeStatus string
+
+	if m.playerStatus.Title == "<nil>" {
+		songAlbumArtistInfo = ""
+	} else if strings.Contains(m.playerStatus.Title, "stream?c=SubTUI") {
+		songAlbumArtistInfo = ""
+	} else {
+		songAlbumArtistInfo = api.SanitizeDisplayString(m.playerStatus.Artist + " - " + m.playerStatus.Album)
 	}
 
-	barWidth := m.width - 20
-	if barWidth < 10 {
-		barWidth = 10
+	switch m.loopMode {
+	case LoopNone:
+		loopStatus = ""
+	case LoopAll:
+		loopStatus = "[Loop all]"
+	case LoopOne:
+		loopStatus = "[Loop one]"
 	}
+
+	if m.playerStatus.Volume != 100 {
+		volumeStatus = fmt.Sprintf("[%v%%]", m.playerStatus.Volume)
+	}
+
+	middleRowGap := width - runewidth.StringWidth(songAlbumArtistInfo) - runewidth.StringWidth(loopStatus) - 1 - runewidth.StringWidth(volumeStatus)
+	if middleRowGap < 0 {
+		middleRowGap = 0
+	}
+	middleRow = lipgloss.JoinHorizontal(
+		lipgloss.Center,
+		songAlbumArtistInfo,
+		strings.Repeat(" ", middleRowGap),
+		loopStatus,
+		" ",
+		volumeStatus,
+	)
+
+	// Bottom row
+	var currentTime string
+	var progressBar string
+	var totalTime string
+
+	currentTime = formatDuration(int(m.playerStatus.Current))
+	totalTime = formatDuration(int(m.playerStatus.Duration))
 
 	percent := 0.0
 	if m.playerStatus.Duration > 0 {
 		percent = m.playerStatus.Current / m.playerStatus.Duration
 	}
-	filledChars := int(percent * float64(barWidth))
-	if filledChars > barWidth {
-		filledChars = barWidth
-	}
+	infoLen := len(currentTime) + 4 + len(totalTime) // 2x padding
+	progressLen := int(percent * float64(width-infoLen))
+	progressBar += " [" + strings.Repeat("=", progressLen) + ">"
+	progressBar += strings.Repeat("-", width-infoLen-progressLen-1) + "] " // >-char
 
-	barStr := ""
-	if filledChars > 0 {
-		barStr = strings.Repeat("=", filledChars-1) + ">"
-	}
-	emptyChars := barWidth - filledChars
-	if emptyChars > 0 {
-		barStr += strings.Repeat("-", emptyChars)
-	}
-
-	currStr := formatDuration(int(m.playerStatus.Current))
-	durStr := formatDuration(int(m.playerStatus.Duration))
-
-	loopText := ""
-	switch m.loopMode {
-	case LoopNone:
-		loopText = ""
-	case LoopAll:
-		loopText = "[Loop all]"
-	case LoopOne:
-		loopText = "[Loop one]"
-	}
-
-	volumeText := ""
-	if m.playerStatus.Volume != 100 {
-		volumeText = fmt.Sprintf(" [%v%%]", m.playerStatus.Volume)
-	}
-
-	bottomRowGap := 0
-	bottomRowSpaceTaken := borderWidth + 2*spacing + runewidth.StringWidth(artistAlbumText) + runewidth.StringWidth(loopText) + runewidth.StringWidth(volumeText)
-	if artistAlbumText != "" && m.width != 0 && m.width-bottomRowSpaceTaken > 0 {
-		bottomRowGap = m.width - bottomRowSpaceTaken
-	} else if m.width != 0 {
-		bottomRowGap = m.width - borderWidth - 2*spacing - runewidth.StringWidth(loopText)
-	}
-
-	bottomRowText := artistAlbumText + strings.Repeat(" ", bottomRowGap) + loopText + volumeText
-
-	topRow := lipgloss.NewStyle().Bold(true).Foreground(Theme.Highlight).Render("   " + LimitString(title, m.width-borderWidth-2*spacing))
-	bottomRow := lipgloss.NewStyle().Foreground(Theme.Subtle).Render("   " + LimitString(bottomRowText, m.width-borderWidth-2*spacing))
-
-	rawProgress := fmt.Sprintf("%s %s %s",
-		currStr,
-		lipgloss.NewStyle().Foreground(Theme.Special).Render("["+barStr+"]"),
-		durStr,
+	bottomRow = lipgloss.JoinHorizontal(
+		lipgloss.Center,
+		currentTime,
+		progressBar,
+		totalTime,
 	)
 
-	rowProgress := lipgloss.NewStyle().
-		Width(m.width - borderWidth).
-		Align(lipgloss.Center).
-		Render(rawProgress)
-
-	return fmt.Sprintf("%s\n%s\n\n%s", topRow, bottomRow, rowProgress)
+	return lipgloss.JoinVertical(lipgloss.Center, topRow, middleRow, "", bottomRow)
 }
 
 func helpViewContent() string {

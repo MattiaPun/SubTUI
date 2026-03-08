@@ -1,12 +1,14 @@
 package ui
 
 import (
+	"image"
 	"time"
 
 	"github.com/MattiaPun/SubTUI/v2/internal/api"
 	"github.com/MattiaPun/SubTUI/v2/internal/integration"
 	"github.com/MattiaPun/SubTUI/v2/internal/player"
 	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/x/mosaic"
 )
 
 var albumTypes = []string{"All", "Random", "Favorites", "Recently Added", "Recently Played", "Most Played"}
@@ -37,6 +39,10 @@ type model struct {
 	filterMode      int
 	displayMode     int
 	displayModePrev int
+
+	// Cover Art
+	coverArt    image.Image
+	coverMosaic mosaic.Mosaic
 
 	// App State
 	err              error
@@ -130,6 +136,10 @@ type playQueueResultMsg struct {
 }
 
 type viewStarredSongsMsg *api.SearchResult3
+
+type coverArtMsg struct {
+	img image.Image
+}
 
 type createShareMsg struct {
 	url string

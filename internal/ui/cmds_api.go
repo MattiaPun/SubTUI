@@ -1,6 +1,9 @@
 package ui
 
 import (
+	"bytes"
+	"image/jpeg"
+
 	"github.com/MattiaPun/SubTUI/v2/internal/api"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -135,6 +138,22 @@ func toggleStarCmd(id string, isCurrentlyStarred bool) tea.Cmd {
 			api.SubsonicStar(id)
 		}
 		return nil
+	}
+}
+
+func getCoverArtCmd(songID string) tea.Cmd {
+	return func() tea.Msg {
+		imgData, err := api.SubsonicCoverArt(songID, 500)
+		if err != nil {
+			return nil
+		}
+
+		img, err := jpeg.Decode(bytes.NewReader(imgData))
+		if err != nil {
+			return nil
+		}
+
+		return coverArtMsg{img: img}
 	}
 }
 

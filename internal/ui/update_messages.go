@@ -13,6 +13,7 @@ import (
 	"github.com/MattiaPun/SubTUI/v2/internal/player"
 	"github.com/atotto/clipboard"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/x/mosaic"
 	"github.com/gen2brain/beeep"
 	zone "github.com/lrstanley/bubblezone"
 )
@@ -234,7 +235,7 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 			// System notification
 			if m.notify {
 				go func() {
-					artBytes, err := api.SubsonicCoverArt(currentSong.ID)
+					artBytes, err := api.SubsonicCoverArt(currentSong.ID, 50)
 
 					title := "SubTUI"
 					description := fmt.Sprintf("Playing %s - %s", currentSong.Title, currentSong.Artist)
@@ -255,6 +256,11 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 			// Discord Update
 			if m.discordRPC && m.discordInstance != nil {
 				m.discordInstance.UpdateActivity(metadata)
+			}
+
+			// Album Art Update
+			if api.AppConfig.Theme.DisplayAlbumArt {
+				cmds = append(cmds, getCoverArtCmd(currentSong.ID))
 			}
 
 			windowTitle := fmt.Sprintf("%s - %s", metadata.Title, metadata.Artist)
@@ -391,6 +397,12 @@ func (m model) handleViewStarredSongs(msg viewStarredSongsMsg) (tea.Model, tea.C
 	}
 
 	m.songs = msg.Songs
+	return m, nil
+}
+
+func (m model) handleCoverArt(msg coverArtMsg) (tea.Model, tea.Cmd) {
+	m.coverArt = msg.img
+	m.coverMosaic = mosaic.New().Width(16).Height(8)
 	return m, nil
 }
 

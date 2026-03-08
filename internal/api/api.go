@@ -326,8 +326,8 @@ func SubsonicCoverArtUrl(id string, size int) string {
 	return url
 }
 
-func SubsonicCoverArt(id string) ([]byte, error) {
-	url := SubsonicCoverArtUrl(id, 50)
+func SubsonicCoverArt(id string, size int) ([]byte, error) {
+	url := SubsonicCoverArtUrl(id, size)
 	resp, err := httpClient.Get(url)
 	if err != nil {
 		return nil, err
