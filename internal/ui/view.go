@@ -164,12 +164,12 @@ func (m model) BaseView() string {
 	)
 }
 
-func truncate(s string, w int) string {
-	if w <= 1 {
+func truncate(s string, width int) string {
+	if width <= 1 {
 		return ""
 	}
-	if len(s) > w {
-		return s[:w-1] + "…"
+	if len(s) > width {
+		return s[:width-1] + "…"
 	}
 	return s
 }
@@ -648,9 +648,11 @@ func footerInformation(m model, width int) string {
 	if topRowGap < 0 {
 		topRowGap = 0
 	}
+
+	truncatedTitle := truncate(songTitle, width-runewidth.StringWidth(notifcationStatus))
 	topRow = lipgloss.JoinHorizontal(
 		lipgloss.Center,
-		lipgloss.NewStyle().Foreground(Theme.Highlight).Render(songTitle),
+		lipgloss.NewStyle().Foreground(Theme.Highlight).Render(truncatedTitle),
 		strings.Repeat(" ", topRowGap),
 		notifcationStatus,
 	)
@@ -685,9 +687,11 @@ func footerInformation(m model, width int) string {
 	if middleRowGap < 0 {
 		middleRowGap = 0
 	}
+
+	truncatedSongAlbumArtistInfo := truncate(songAlbumArtistInfo, width-runewidth.StringWidth(loopStatus)-1-runewidth.StringWidth(volumeStatus))
 	middleRow = lipgloss.JoinHorizontal(
 		lipgloss.Center,
-		songAlbumArtistInfo,
+		truncatedSongAlbumArtistInfo,
 		strings.Repeat(" ", middleRowGap),
 		loopStatus,
 		" ",
