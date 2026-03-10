@@ -3,6 +3,7 @@ package ui
 import (
 	"bytes"
 	"image/jpeg"
+	"path/filepath"
 
 	"github.com/MattiaPun/SubTUI/v2/internal/api"
 	tea "github.com/charmbracelet/bubbletea"
@@ -10,7 +11,7 @@ import (
 
 func attemptLoginCmd() tea.Cmd {
 	return func() tea.Msg {
-		if err := api.SaveConfig(api.GetConfigPath("credentials.toml"), api.AppServerConfig, 0600); err != nil {
+		if err := api.SaveConfig(filepath.Join(api.ConfigDir, "credentials.toml"), api.AppServerConfig, 0600); err != nil {
 			return loginResultMsg{err: err}
 		}
 

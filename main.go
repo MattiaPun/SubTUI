@@ -22,7 +22,14 @@ var (
 )
 
 func main() {
+	// Precedence: cli flag > ENV variable > default
+	defaultConfig := "~/.config/subtui"
+	if envConfig := os.Getenv("SUBTUI_CONFIG"); envConfig != "" {
+		defaultConfig = envConfig
+	}
+
 	// Debug flag
+	configPath := flag.String("c", defaultConfig, "Custom config folder path")
 	debug := flag.Bool("debug", false, "Enable debug logging to subtui.log")
 	showVersion := flag.Bool("v", false, "Print version and exit")
 	flag.Parse()
@@ -53,7 +60,7 @@ func main() {
 	}
 
 	// Load Config
-	if err := api.LoadConfig(); err != nil {
+	if err := api.LoadConfig(*configPath); err != nil {
 		fmt.Printf("Fatal error loading config: %v\n", err)
 		os.Exit(1)
 	}

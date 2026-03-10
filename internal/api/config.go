@@ -11,6 +11,8 @@ import (
 	"github.com/pelletier/go-toml/v2"
 )
 
+var ConfigDir string
+
 //go:embed config.toml
 var defaultConfig []byte
 var AppConfig Config
@@ -157,15 +159,6 @@ type OtherKeybinds struct {
 	CreateShareLink     []string `toml:"create_share_link"`
 }
 
-func GetConfigPath(configName string) string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return ""
-	}
-
-	return filepath.Join(home, ".config", "subtui", configName)
-}
-
 func createDefaultConfig(path string, content []byte, label string, permissions os.FileMode) error {
 	// Create config dir
 	dir := filepath.Dir(path)
@@ -183,13 +176,15 @@ func createDefaultConfig(path string, content []byte, label string, permissions 
 	return nil
 }
 
-func LoadConfig() error {
+func LoadConfig(configDir string) error {
+	ConfigDir = configDir
+
 	// Get config paths
-	configPath := GetConfigPath("config.toml")
+	configPath := filepath.Join(ConfigDir, "config.toml")
 	if configPath == "" {
 		return fmt.Errorf("could not determine config path")
 	}
-	credentialsConfigPath := GetConfigPath("credentials.toml")
+	credentialsConfigPath := filepath.Join(ConfigDir, "credentials.toml")
 	if credentialsConfigPath == "" {
 		return fmt.Errorf("could not determine server config path")
 	}
