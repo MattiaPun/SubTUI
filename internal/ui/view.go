@@ -13,21 +13,6 @@ import (
 	overlay "github.com/rmhubbert/bubbletea-overlay"
 )
 
-const (
-	trackNumberWidth = 4
-	yearWidth        = 4
-	ratingWidth      = 4
-	playcountWidth   = 5
-	durationWidth    = 6
-)
-
-const (
-	titleWeight  = 3.5
-	artistWeight = 2.0
-	albumWeight  = 3.0
-	genreWeight  = 2.0
-)
-
 func (m model) View() string {
 	if m.width < 50 || m.height < 25 {
 		return viewToSmallContent(m)
@@ -104,7 +89,7 @@ func (m model) BaseView() string {
 	topView := headerBorder.
 		Width(m.width - 2).
 		Height(headerHeight).
-		Render(headerContent(m))
+		Render(searchbarContent(m))
 
 	// SIDEBAR
 	sideBorder := borderStyle
@@ -164,52 +149,7 @@ func (m model) BaseView() string {
 	)
 }
 
-func truncate(s string, width int) string {
-	if width <= 1 {
-		return ""
-	}
-	if len(s) > width {
-		return s[:width-1] + "…"
-	}
-	return s
-}
-
-func formatTime(v int64) string {
-	minutes := int(v) / 60
-	seconds := int(v) % 60
-
-	return fmt.Sprintf("%d:%02d", minutes, seconds)
-}
-
-func LimitString(s string, limit int) string {
-	if limit <= 0 {
-		return ""
-	}
-
-	width := runewidth.StringWidth(s)
-
-	if width <= limit {
-		padding := strings.Repeat(" ", limit-width)
-		return s + padding
-	}
-
-	curWidth := 0
-	res := ""
-
-	for _, r := range s {
-		w := runewidth.RuneWidth(r)
-
-		if curWidth+w > limit {
-			break
-		}
-
-		res += string(r)
-		curWidth += w
-	}
-
-	return res + strings.Repeat(" ", limit-curWidth)
-}
-
+// Generate the login view
 func loginView(m model) string {
 	errorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true)
 	errorDisplay := ""
@@ -243,7 +183,8 @@ func loginView(m model) string {
 	)
 }
 
-func headerContent(m model) string {
+// Generate the search bar
+func searchbarContent(m model) string {
 
 	leftContent := "Search: " + m.textInput.View()
 	filterMode := ""
@@ -269,6 +210,7 @@ func headerContent(m model) string {
 	return leftContent + gap + rightContent
 }
 
+// Generate the side bar
 func sidebarContent(m model, mainHeight int, sidebarWidth int) string {
 	content := ""
 	currentLine := 0
@@ -343,269 +285,246 @@ func sidebarContent(m model, mainHeight int, sidebarWidth int) string {
 	return content
 }
 
-func mainSongsContent(m model, mainWidth int, mainHeight int) string {
-	mainContent := ""
-	headerTitle := ""
-	var targetList []api.Song
+// Generate the main view for songs
+func mainSongsContent(m model, width int, height int) string {
+	var headerRow string
+	var songRows string
 
-	if m.viewMode == viewList {
+	var target []api.Song
+	var headerTitle string
+	var emptyStatus string
+
+	var availableWidth int
+	var availableHeight int
+
+	var songsDisplayStart int
+	var songsDisplayStop int
+
+	switch m.viewMode {
+	case viewList:
+		target = m.songs
 		headerTitle = "TITLE"
-		targetList = m.songs
-		mainContent = "\n  Use the search bar to find Songs."
-	} else {
+		emptyStatus = "\n  Use the search bar to find songs..."
+	case viewQueue:
+		target = m.queue
 		headerTitle = fmt.Sprintf("QUEUE (%d/%d)", m.queueIndex+1, len(m.queue))
-		targetList = m.queue
-		mainContent = "\n  Queue is empty."
 	}
 
-	if len(targetList) == 0 {
-		return mainContent
+	// Return if no songs
+	if len(target) == 0 {
+		return emptyStatus
 	}
 
-	cols := api.AppConfig.Columns
-	colTitle, colArtist, colAlbum, colGenre := calculateColumns(cols, mainWidth)
+	// Get available width and height
+	availableWidth, availableHeight = calculateMainWidthAndHeight(width, height)
 
-	mainContent = generateHeader(cols, mainWidth, headerTitle)
-	mainContent += lipgloss.NewStyle().Foreground(Theme.Subtle).Render("  "+strings.Repeat("-", mainWidth-4)) + "\n"
+	activeColumns := getSongColumns(headerTitle)                         // Get active columns
+	columnsWidth := calculateColumnsWidth(activeColumns, availableWidth) // Get active columns width
+	headerRow = generateHeader(activeColumns, columnsWidth)              // Generate header
 
-	headerHeight := 4
-	visibleRows := mainHeight - headerHeight
-	if visibleRows < 1 {
-		visibleRows = 1
-	}
+	songsDisplayStart = m.mainOffset
+	songsDisplayStop = songsDisplayStart + availableHeight
 
-	start := m.mainOffset
-	end := start + visibleRows
-	if end >= len(targetList) {
-		end = len(targetList)
-	}
+	// Display songs
+	for i := songsDisplayStart; i <= songsDisplayStop; i++ {
+		var style lipgloss.Style
+		var row string
+		var zoneId string
+		var song api.Song
 
-	for i := start; i <= end; i++ {
-		if i >= len(targetList) {
+		// Return if no more songs
+		if i >= len(target) {
 			break
 		}
 
-		song := targetList[i]
-		rowText := ""
-		style := lipgloss.NewStyle()
+		// Get song
+		song = target[i]
 
-		// Display cursor
-		if m.cursorMain != i {
-			rowText += "  "
-		} else {
-			rowText += "> "
-			if m.focus == focusMain {
-				style = style.Foreground(Theme.Highlight).Bold(true)
-			} else {
-				style = style.Foreground(Theme.Subtle)
-			}
-		}
+		// Cursor
+		row, style = generateCursor(m, i)
 
-		// Display favorited songs
-		if m.starredMap[song.ID] {
-			rowText += "♥ "
-		} else {
-			rowText += "  "
-		}
-
-		// Display filtered out songs
-		if song.Filtered {
-			style = style.Foreground(Theme.Filtered)
-		}
-
-		// Display current playing song
+		// Current playing song
 		if len(m.queue) > 0 && song.ID == m.queue[m.queueIndex].ID {
-			style = style.Foreground(Theme.Special)
+			style = currentPlaySongStyle
 		}
 
-		// Display columns
-		if cols.ShowTrackNumber {
-			trackStr := ""
-			if song.DiscNumber > 0 {
-				trackStr = fmt.Sprintf("%d-%d", song.DiscNumber, song.TrackNumber)
-			} else if song.TrackNumber > 0 {
-				trackStr = fmt.Sprintf("%d", song.TrackNumber)
-			} else {
-				trackStr = "-"
+		// Favorite album
+		row += generateStar(m, song.ID)
+
+		// Filtered song
+		if song.Filtered {
+			style = filteredStyle
+		}
+
+		// Render song information
+		for i, column := range activeColumns {
+			row += LimitString(column.Value(song), columnsWidth[i])
+
+			// Add padding
+			if i < len(activeColumns)-1 {
+				row += " "
 			}
-			rowText += LimitString(trackStr, 4) + " "
 		}
 
-		if cols.ShowTitle {
-			rowText += LimitString(song.Title, colTitle) + " "
-		}
+		// Apply styling
+		row = style.Render(row)
 
-		if cols.ShowArtist {
-			rowText += LimitString(song.Artist, colArtist) + " "
-		}
-
-		if cols.ShowAlbum {
-			rowText += LimitString(song.Album, colAlbum) + " "
-		}
-
-		if cols.ShowYear {
-			rowText += LimitString(fmt.Sprintf("%d", song.Year), 4) + " "
-		}
-
-		if cols.ShowGenre {
-			rowText += LimitString(song.Genre, colGenre) + " "
-		}
-
-		if cols.ShowRating {
-			rowText += LimitString(fmt.Sprintf("%d", song.Rating), 5) + " "
-		}
-
-		if cols.ShowPlayCount {
-			rowText += LimitString(fmt.Sprintf("%d", song.PlayCount), 5) + " "
-		}
-
-		if cols.ShowDuration {
-			rowText += LimitString(formatDuration(song.Duration), 6)
-		}
-
-		// Add ID for mouse support
-		id := fmt.Sprintf("mainview_item_%d", i)
-		row := zone.Mark(id, style.Render(rowText))
-
-		mainContent += fmt.Sprintf("%s\n", row)
+		// Add zone ID
+		zoneId = fmt.Sprintf("mainview_item_%d", i)
+		songRows += fmt.Sprintf("%s\n", zone.Mark(zoneId, row))
 	}
 
-	return mainContent
+	return lipgloss.JoinVertical(
+		lipgloss.Left,
+		headerRow,
+		subtleStyle.Render("  "+strings.Repeat("-", availableWidth)),
+		songRows,
+	)
 }
 
-func mainAlbumsContent(m model, mainWidth int, mainHeight int) string {
+// Generate the main view for albums
+func mainAlbumsContent(m model, width int, height int) string {
+	var headerRow string
+	var albumRows string
+
+	var availableHeight int
+	var availableWidth int
+
+	var albumDisplayStart int
+	var albumDisplayStop int
+
+	// Return if no albums
 	if len(m.albums) == 0 {
-		return "\n  Use the search bar to find Albums."
+		return "\n  Use the search bar to find albums..."
 	}
 
-	availableWidth := mainWidth - 4
-	colAlbum := int(float64(availableWidth) * 0.45)
-	colArtist := int(float64(availableWidth) * 0.45)
-	colDuration := int(float64(availableWidth) * 0.1)
-	headerStyle := lipgloss.NewStyle().Bold(true).Foreground(Theme.Subtle)
-	header := fmt.Sprintf("  %s %s %s",
-		LimitString("ALBUM", colAlbum),
-		LimitString("ARTIST", colArtist),
-		LimitString("DURATION", colDuration),
-	)
+	// Get available width and height
+	availableWidth, availableHeight = calculateMainWidthAndHeight(width, height)
 
-	mainContent := headerStyle.Render(header) + "\n"
-	mainContent += lipgloss.NewStyle().Foreground(Theme.Subtle).Render("  "+strings.Repeat("-", mainWidth-4)) + "\n"
+	activeColumns := getAlbumColumns()                                   // Get active columns
+	columnsWidth := calculateColumnsWidth(activeColumns, availableWidth) // Get active columns width
+	headerRow = generateHeader(activeColumns, columnsWidth)              // Generate header
 
-	headerHeight := 4
-	visibleRows := mainHeight - headerHeight
-	if visibleRows < 1 {
-		visibleRows = 1
-	}
+	albumDisplayStart = m.mainOffset
+	albumDisplayStop = albumDisplayStart + availableHeight
 
-	start := m.mainOffset
-	end := start + visibleRows
-	if end >= len(m.albums) {
-		end = len(m.albums)
-	}
+	for i := albumDisplayStart; i <= albumDisplayStop; i++ {
+		var style lipgloss.Style
+		var row string
+		var zoneId string
+		var album api.Album
 
-	for i := start; i <= end; i++ {
+		// Return if no more albums
 		if i >= len(m.albums) {
 			break
 		}
 
-		album := m.albums[i]
+		album = m.albums[i]
 
-		cursor := "  "
-		style := lipgloss.NewStyle()
+		// Cursor
+		row, style = generateCursor(m, i)
 
-		if m.cursorMain == i {
-			cursor = "> "
-			if m.focus == focusMain {
-				style = style.Foreground(Theme.Highlight).Bold(true)
-			} else {
-				style = style.Foreground(Theme.Subtle)
+		// Favorite album
+		row += generateStar(m, album.ID)
+
+		// Render album information
+		for i, column := range activeColumns {
+			row += LimitString(column.Value(album), columnsWidth[i])
+
+			// Add padding
+			if i < len(activeColumns)-1 {
+				row += " "
 			}
 		}
 
-		starIcon := " "
-		if m.starredMap[album.ID] {
-			starIcon = "♥"
-		}
+		// Apply styling
+		row = style.Render(row)
 
-		row := fmt.Sprintf("%s %s %s %s",
-			starIcon, // 1 char
-			LimitString(album.Name, colAlbum-2),
-			LimitString(album.Artist, colArtist),
-			LimitString(formatTime(album.Duration), colDuration),
-		)
-
-		id := fmt.Sprintf("mainview_item_%d", i)
-		row = zone.Mark(id, style.Render(row))
-
-		mainContent += fmt.Sprintf("%s%s\n", cursor, style.Render(row))
+		// Add zone ID
+		zoneId = fmt.Sprintf("mainview_item_%d", i)
+		albumRows += fmt.Sprintf("%s\n", zone.Mark(zoneId, row))
 	}
 
-	return mainContent
+	return lipgloss.JoinVertical(
+		lipgloss.Left,
+		headerRow,
+		subtleStyle.Render("  "+strings.Repeat("-", availableWidth)),
+		albumRows,
+	)
 }
 
-func mainArtistContent(m model, mainWidth int, mainHeight int) string {
+// Generate the main view for artist
+func mainArtistContent(m model, width int, height int) string {
+	var headerRow string
+	var artistRows string
+
+	var availableHeight int
+	var availableWidth int
+
+	var artistDisplayStart int
+	var artistDisplayStop int
+
+	// Return if no artists
 	if len(m.artists) == 0 {
-		return "\n  Use the search bar to find Artists."
+		return "\n  Use the search bar to find artists..."
 	}
 
-	colArtist := mainWidth - 4
-	headerStyle := lipgloss.NewStyle().Bold(true).Foreground(Theme.Subtle)
-	header := fmt.Sprintf("  %s", LimitString("ARTIST", colArtist))
+	// Get available width and height
+	availableWidth, availableHeight = calculateMainWidthAndHeight(width, height)
 
-	mainContent := headerStyle.Render(header) + "\n"
-	mainContent += lipgloss.NewStyle().Foreground(Theme.Subtle).Render("  "+strings.Repeat("-", mainWidth-4)) + "\n"
+	activeColumns := getArtistColumns()                                  // Get active columns
+	columnsWidth := calculateColumnsWidth(activeColumns, availableWidth) // Get active columns width
+	headerRow = generateHeader(activeColumns, columnsWidth)              // Generate header
 
-	headerHeight := 4
-	visibleRows := mainHeight - headerHeight
-	if visibleRows < 1 {
-		visibleRows = 1
-	}
+	artistDisplayStart = m.mainOffset
+	artistDisplayStop = artistDisplayStart + availableHeight
 
-	start := m.mainOffset
-	end := start + visibleRows
-	if end >= len(m.artists) {
-		end = len(m.artists)
-	}
+	for i := artistDisplayStart; i <= artistDisplayStop; i++ {
+		var style lipgloss.Style
+		var row string
+		var zoneId string
+		var artist api.Artist
 
-	for i := start; i <= end; i++ {
+		// Return if no more artists
 		if i >= len(m.artists) {
 			break
 		}
 
-		artist := m.artists[i]
+		artist = m.artists[i]
 
-		cursor := "  "
-		style := lipgloss.NewStyle()
+		// Cursor
+		row, style = generateCursor(m, i)
 
-		if m.cursorMain == i {
-			cursor = "> "
-			if m.focus == focusMain {
-				style = style.Foreground(Theme.Highlight).Bold(true)
-			} else {
-				style = style.Foreground(Theme.Subtle)
+		// Favorite artist
+		row += generateStar(m, artist.ID)
+
+		// Render album information
+		for i, column := range activeColumns {
+			row += LimitString(column.Value(artist), columnsWidth[i])
+
+			// Add padding
+			if i < len(activeColumns)-1 {
+				row += " "
 			}
 		}
 
-		starIcon := " "
-		if m.starredMap[artist.ID] {
-			starIcon = lipgloss.NewStyle().Render("♥︎")
-		}
+		// Apply styling
+		row = style.Render(row)
 
-		row := fmt.Sprintf("%s %s",
-			starIcon,
-			LimitString(artist.Name, colArtist-2),
-		)
-
-		id := fmt.Sprintf("mainview_item_%d", i)
-		row = zone.Mark(id, style.Render(row))
-
-		mainContent += fmt.Sprintf("%s%s\n", cursor, style.Render(row))
+		// Add zone ID
+		zoneId = fmt.Sprintf("mainview_item_%d", i)
+		artistRows += fmt.Sprintf("%s\n", zone.Mark(zoneId, row))
 	}
 
-	return mainContent
+	return lipgloss.JoinVertical(
+		lipgloss.Left,
+		headerRow,
+		subtleStyle.Render("  "+strings.Repeat("-", availableWidth)),
+		artistRows,
+	)
 }
 
+// Generate the footer
 func footerContent(m model) string {
 	var content string
 
@@ -623,6 +542,7 @@ func footerContent(m model) string {
 	return "\n" + content
 }
 
+// Generate the footer information
 func footerInformation(m model, width int) string {
 	var topRow string
 	var middleRow string
@@ -725,6 +645,7 @@ func footerInformation(m model, width int) string {
 	return lipgloss.JoinVertical(lipgloss.Center, topRow, middleRow, "", bottomRow)
 }
 
+// Generete the help overlay
 func helpViewContent() string {
 	keyStyle := lipgloss.NewStyle().Foreground(Theme.Special).Bold(true)
 	descStyle := lipgloss.NewStyle().Foreground(Theme.Subtle)
@@ -843,6 +764,7 @@ func helpViewContent() string {
 
 }
 
+// Generete the add-to-playlist overlay
 func addToPlaylistContent(m model) string {
 	playlistContent := ""
 	for i := 0; i < len(m.playlists); i++ {
@@ -861,6 +783,7 @@ func addToPlaylistContent(m model) string {
 	return playlistContent
 }
 
+// Generete the add-rating overlay
 func addRatingContent(m model) string {
 	ratingContent := ""
 	for i := 0; i <= 5; i++ {
@@ -882,6 +805,7 @@ func addRatingContent(m model) string {
 	return lipgloss.NewStyle().Align(lipgloss.Left).Render(ratingContent)
 }
 
+// Generete the view for a too small viewport
 func viewToSmallContent(m model) string {
 	content := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
@@ -898,115 +822,317 @@ func viewToSmallContent(m model) string {
 	)
 }
 
-// Helper: calculate the column values
-func calculateColumns(cols api.Columns, mainWidth int) (int, int, int, int) {
-	availableWidth := mainWidth - 4
-	cursorWidth := 2
-	starWidth := 2
-
-	fixedWidth := cursorWidth + starWidth
-	if cols.ShowTrackNumber {
-		fixedWidth += trackNumberWidth + 1
+// Helper: Cut of strings at a specified width
+func truncate(s string, width int) string {
+	if width <= 1 {
+		return ""
 	}
 
-	if cols.ShowYear {
-		fixedWidth += yearWidth + 1
+	if len(s) > width {
+		return s[:width-1] + "…"
 	}
 
-	if cols.ShowRating {
-		fixedWidth += ratingWidth + 1
+	return s
+}
+
+// Helper: Cut of string OR add padding to get specified width
+func LimitString(s string, maxWidth int) string {
+	if maxWidth <= 0 {
+		return ""
 	}
 
-	if cols.ShowPlayCount {
-		fixedWidth += playcountWidth + 1
+	stringWidth := runewidth.StringWidth(s)
+
+	if stringWidth <= maxWidth {
+		padding := strings.Repeat(" ", maxWidth-stringWidth)
+		return s + padding
 	}
 
-	if cols.ShowDuration {
-		fixedWidth += durationWidth
-	}
+	currentWidth := 0
+	result := ""
 
-	dynamicWidth := availableWidth - fixedWidth
-	if dynamicWidth < 10 {
-		dynamicWidth = 10
-	}
+	for _, r := range s {
+		w := runewidth.RuneWidth(r)
 
-	totalColumnWeight := 0.0
-	if cols.ShowTitle {
-		totalColumnWeight += titleWeight
-	}
-
-	if cols.ShowArtist {
-		totalColumnWeight += artistWeight
-	}
-
-	if cols.ShowAlbum {
-		totalColumnWeight += albumWeight
-	}
-
-	if cols.ShowGenre {
-		totalColumnWeight += genreWeight
-	}
-
-	colTitle, colArtist, colAlbum, colGenre := 0, 0, 0, 0
-	if totalColumnWeight > 0 {
-		if cols.ShowTitle {
-			colTitle = int((titleWeight / totalColumnWeight) * float64(dynamicWidth))
+		if currentWidth+w > maxWidth {
+			break
 		}
-		if cols.ShowArtist {
-			colArtist = int((artistWeight / totalColumnWeight) * float64(dynamicWidth))
-		}
-		if cols.ShowAlbum {
-			colAlbum = int((albumWeight / totalColumnWeight) * float64(dynamicWidth))
-		}
-		if cols.ShowGenre {
-			colGenre = int((genreWeight / totalColumnWeight) * float64(dynamicWidth))
+
+		result += string(r)
+		currentWidth += w
+	}
+
+	return result + strings.Repeat(" ", maxWidth-currentWidth)
+}
+
+// Helper: Get all active song columns
+func getSongColumns(headerTitle string) []headerColumn[api.Song] {
+	var cols []headerColumn[api.Song]
+
+	if api.AppConfig.Columns.Songs.ShowTrackNumber {
+		cols = append(cols, headerColumn[api.Song]{
+			Title:      "#",
+			FixedWidth: 4,
+			Value: func(s api.Song) string {
+				if s.DiscNumber > 0 {
+					return fmt.Sprintf("%d-%d", s.DiscNumber, s.TrackNumber)
+				} else if s.TrackNumber > 0 {
+					return fmt.Sprintf("%d", s.TrackNumber)
+				}
+				return "-"
+			},
+		})
+	}
+
+	if api.AppConfig.Columns.Songs.ShowTitle {
+		cols = append(cols, headerColumn[api.Song]{
+			Title:  headerTitle,
+			Weight: 0.40,
+			Value:  func(s api.Song) string { return s.Title },
+		})
+	}
+
+	if api.AppConfig.Columns.Songs.ShowArtist {
+		cols = append(cols, headerColumn[api.Song]{
+			Title:  "ARTIST",
+			Weight: 0.30,
+			Value:  func(s api.Song) string { return s.Artist },
+		})
+	}
+
+	if api.AppConfig.Columns.Songs.ShowAlbum {
+		cols = append(cols, headerColumn[api.Song]{
+			Title:  "ALBUM",
+			Weight: 0.30,
+			Value:  func(s api.Song) string { return s.Album },
+		})
+	}
+
+	if api.AppConfig.Columns.Songs.ShowYear {
+		cols = append(cols, headerColumn[api.Song]{
+			Title:      "YEAR",
+			FixedWidth: 4,
+			Value:      func(s api.Song) string { return fmt.Sprintf("%d", s.Year) },
+		})
+	}
+
+	if api.AppConfig.Columns.Songs.ShowGenre {
+		cols = append(cols, headerColumn[api.Song]{
+			Title:  "GENRE",
+			Weight: 0.25,
+			Value:  func(s api.Song) string { return s.Genre },
+		})
+	}
+
+	if api.AppConfig.Columns.Songs.ShowRating {
+		cols = append(cols, headerColumn[api.Song]{
+			Title:      "RATE",
+			FixedWidth: 4,
+			Value:      func(s api.Song) string { return fmt.Sprintf("%d", s.Rating) },
+		})
+	}
+
+	if api.AppConfig.Columns.Songs.ShowPlayCount {
+		cols = append(cols, headerColumn[api.Song]{
+			Title:      "PLAYS",
+			FixedWidth: 5,
+			Value:      func(s api.Song) string { return fmt.Sprintf("%d", s.PlayCount) },
+		})
+	}
+
+	if api.AppConfig.Columns.Songs.ShowDuration {
+		cols = append(cols, headerColumn[api.Song]{
+			Title:      "TIME",
+			FixedWidth: 6,
+			Value:      func(s api.Song) string { return formatDuration(s.Duration) },
+		})
+	}
+
+	return cols
+}
+
+// Helper: Get all active album columns
+func getAlbumColumns() []headerColumn[api.Album] {
+	var cols []headerColumn[api.Album]
+
+	if api.AppConfig.Columns.Albums.ShowName {
+		cols = append(cols, headerColumn[api.Album]{
+			Title:  "ALBUM",
+			Weight: 0.60,
+			Value:  func(a api.Album) string { return a.Name },
+		})
+	}
+
+	if api.AppConfig.Columns.Albums.ShowArtists {
+		cols = append(cols, headerColumn[api.Album]{
+			Title:  "ARTIST",
+			Weight: 0.50,
+			Value:  func(a api.Album) string { return a.Artist },
+		})
+	}
+
+	if api.AppConfig.Columns.Albums.ShowSongcount {
+		cols = append(cols, headerColumn[api.Album]{
+			Title:      "SONGS",
+			FixedWidth: 5,
+			Value:      func(a api.Album) string { return fmt.Sprintf("%d", a.SongCount) },
+		})
+	}
+
+	if api.AppConfig.Columns.Albums.ShowYear {
+		cols = append(cols, headerColumn[api.Album]{
+			Title:      "YEAR",
+			FixedWidth: 4,
+			Value:      func(a api.Album) string { return fmt.Sprintf("%d", a.Year) },
+		})
+	}
+
+	if api.AppConfig.Columns.Albums.ShowGenre {
+		cols = append(cols, headerColumn[api.Album]{
+			Title:  "GENRE",
+			Weight: 0.15,
+			Value:  func(a api.Album) string { return a.Genre },
+		})
+	}
+
+	if api.AppConfig.Columns.Albums.ShowRating {
+		cols = append(cols, headerColumn[api.Album]{
+			Title:      "RATE",
+			FixedWidth: 4,
+			Value:      func(a api.Album) string { return fmt.Sprintf("%d", a.Rating) },
+		})
+	}
+
+	if api.AppConfig.Columns.Albums.ShowDuration {
+		cols = append(cols, headerColumn[api.Album]{
+			Title:      "TIME",
+			FixedWidth: 6,
+			Value:      func(a api.Album) string { return formatDuration(a.Duration) },
+		})
+	}
+
+	return cols
+}
+
+// Helper: Get all active artist columns
+func getArtistColumns() []headerColumn[api.Artist] {
+	var cols []headerColumn[api.Artist]
+
+	if api.AppConfig.Columns.Albums.ShowName {
+		cols = append(cols, headerColumn[api.Artist]{
+			Title:  "ARTIST",
+			Weight: 0.40,
+			Value:  func(a api.Artist) string { return a.Name },
+		})
+	}
+
+	if api.AppConfig.Columns.Albums.ShowSongcount {
+		cols = append(cols, headerColumn[api.Artist]{
+			Title:      "ALBUMS",
+			FixedWidth: 6,
+			Value:      func(a api.Artist) string { return fmt.Sprintf("%d", a.AlbumCount) },
+		})
+	}
+
+	if api.AppConfig.Columns.Albums.ShowRating {
+		cols = append(cols, headerColumn[api.Artist]{
+			Title:      "RATE",
+			FixedWidth: 4,
+			Value:      func(a api.Artist) string { return fmt.Sprintf("%d", a.Rating) },
+		})
+	}
+
+	return cols
+}
+
+// Helper: Calculate the availble width and height for main view
+func calculateMainWidthAndHeight(width int, height int) (int, int) {
+	availableWidth := width - 2 - 2       // 2: borders | 2: padding right
+	availableHeight := height - 2 - 1 - 1 // 2: borders | 1: header | 1: seperator
+
+	if availableHeight < 1 {
+		availableHeight = 1
+	}
+
+	return availableWidth, availableHeight
+}
+
+// Helper: Calculate the column values
+func calculateColumnsWidth[T any](cols []headerColumn[T], totalWidth int) []int {
+	availableWidth := totalWidth - 2 - 2 - 2 - 2 // 1: Border | 1: padding | 1: cursor | 1: star
+
+	var weightTotal float64
+	var fixedTotal int
+
+	for _, column := range cols {
+		if column.FixedWidth > 0 {
+			fixedTotal += column.FixedWidth
+		} else {
+			weightTotal += column.Weight
 		}
 	}
 
-	return colTitle, colArtist, colAlbum, colGenre
+	dynamicSpace := availableWidth - fixedTotal
+	if dynamicSpace < 10 {
+		dynamicSpace = 10
+	}
+
+	widths := make([]int, len(cols))
+	for i, column := range cols {
+		if column.FixedWidth > 0 {
+			widths[i] = column.FixedWidth
+		} else {
+			widths[i] = int((column.Weight / weightTotal) * float64(dynamicSpace))
+		}
+	}
+
+	return widths
 }
 
 // Helper: Generate header
-func generateHeader(cols api.Columns, mainWidth int, headerTitle string) string {
-	colTitle, colArtist, colAlbum, colGenre := calculateColumns(cols, mainWidth)
-
+func generateHeader[T any](cols []headerColumn[T], widths []int) string {
 	headerText := "  "
-	if cols.ShowTrackNumber {
-		headerText += LimitString("#", 4) + " "
-	}
 
-	if cols.ShowTitle {
-		headerText += LimitString(headerTitle, colTitle) + " "
-	}
+	for i, column := range cols {
+		headerText += LimitString(column.Title, widths[i])
 
-	if cols.ShowArtist {
-		headerText += LimitString("ARTIST", colArtist) + " "
-	}
-
-	if cols.ShowAlbum {
-		headerText += LimitString("ALBUM", colAlbum) + " "
-	}
-
-	if cols.ShowYear {
-		headerText += LimitString("YEAR", 4) + " "
-	}
-
-	if cols.ShowGenre {
-		headerText += LimitString("GENRE", colGenre) + " "
-	}
-
-	if cols.ShowRating {
-		headerText += LimitString("RATE", 5) + " "
-	}
-
-	if cols.ShowPlayCount {
-		headerText += LimitString("PLAYS", 5) + " "
-	}
-
-	if cols.ShowDuration {
-		headerText += LimitString("TIME", 6)
+		// Add padding on all but last column
+		if i < len(cols)-1 {
+			headerText += " "
+		}
 	}
 
 	headerStyle := lipgloss.NewStyle().Bold(true).Foreground(Theme.Subtle)
-	return headerStyle.Render("  " + headerText)
+	return headerStyle.Render("  " + strings.TrimRight(headerText, " "))
+}
+
+// Helper: Generate cursor
+func generateCursor(m model, index int) (string, lipgloss.Style) {
+	var cursor string
+	var style lipgloss.Style
+
+	if m.cursorMain == index {
+		cursor += "> "
+
+		// Highlight when focussed
+		if m.focus == focusMain {
+			style = cursorFocusedStyle
+		} else {
+			style = cursorStyle
+		}
+
+	} else {
+		cursor += "  "
+	}
+
+	return cursor, style
+}
+
+// Helper: Generate star
+func generateStar(m model, ID string) string {
+	if m.starredMap[ID] {
+		return "♥ "
+	}
+
+	return "  "
 }

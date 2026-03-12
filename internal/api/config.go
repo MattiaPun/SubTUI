@@ -73,6 +73,12 @@ type Filters struct {
 }
 
 type Columns struct {
+	Songs  SongColumn   `toml:"songs"`
+	Albums AlbumColumn  `toml:"albums"`
+	Artist ArtistColumn `toml:"artists"`
+}
+
+type SongColumn struct {
 	ShowTrackNumber bool `toml:"track_number"`
 	ShowTitle       bool `toml:"title"`
 	ShowArtist      bool `toml:"artist"`
@@ -82,6 +88,22 @@ type Columns struct {
 	ShowRating      bool `toml:"rating"`
 	ShowPlayCount   bool `toml:"play_count"`
 	ShowDuration    bool `toml:"duration"`
+}
+
+type AlbumColumn struct {
+	ShowName      bool `toml:"name"`
+	ShowArtists   bool `toml:"artist"`
+	ShowSongcount bool `toml:"song_count"`
+	ShowYear      bool `toml:"year"`
+	ShowGenre     bool `toml:"genre"`
+	ShowRating    bool `toml:"rating"`
+	ShowDuration  bool `toml:"duration"`
+}
+
+type ArtistColumn struct {
+	ShowName       bool `toml:"name"`
+	ShowAlbumCount bool `toml:"album_count"`
+	ShowRating     bool `toml:"rating"`
 }
 
 type Keybinds struct {

@@ -66,18 +66,23 @@ type SearchResult3 struct {
 }
 
 type Artist struct {
-	ID     string `json:"id"`
-	Name   string `json:"name"`
-	Rating int    `json:"userRating"`
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	AlbumCount int    `json:"albumCount"`
+	Rating     int    `json:"userRating"`
 }
 
 type Album struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	Artist   string `json:"artist"`
-	ArtistID string `json:"artistId"`
-	Duration int64  `json:"duration"`
-	Rating   int    `json:"userRating"`
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Artist    string `json:"artist"`
+	ArtistID  string `json:"artistId"`
+	SongCount int    `json:"songCount"`
+	Genre     string `json:"genre"`
+	Year      int    `json:"year"`
+	Rating    int    `json:"userRating"`
+	Duration  int    `json:"duration"`
+	Note      string `json:"comment"`
 }
 
 type Song struct {

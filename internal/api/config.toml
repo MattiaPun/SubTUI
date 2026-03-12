@@ -25,15 +25,30 @@ exclude_favorites = false # Set to true to exclude songs that are marked as a fa
 max_rating = 0 # Exclude songs with a rating less than or equal to this number (1-5). 0 to disable
 
 [columns]
-track_number = false
-title = true
-artist = true
-album = true
-year = false
-genre = false
-rating = false
-play_count = false
-duration = true
+  [columns.songs]
+  track_number = false
+  title = true
+  artist = true
+  album = true
+  year = false
+  genre = false
+  rating = false
+  play_count = false
+  duration = true
+
+  [columns.albums]
+  title = true
+  artist = true
+  song_count = false
+  year = false
+  genre = false
+  rating = true
+  duration = true
+
+  [columns.artists]
+  name = true
+  album_count = true
+  rating = true
 
 [keybinds]
   [keybinds.global]
