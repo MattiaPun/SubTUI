@@ -271,7 +271,7 @@ func sidebarContent(m model, mainHeight int, sidebarWidth int) string {
 		cursor := "  "
 		style := lipgloss.NewStyle()
 		if m.cursorSide == i && m.focus == focusSidebar {
-			style = style.Foreground(Theme.Highlight).Bold(true)
+			style = highlightStyle.Bold(true)
 			cursor = "> "
 		}
 
@@ -572,7 +572,7 @@ func footerInformation(m model, width int) string {
 	truncatedTitle := truncate(songTitle, width-runewidth.StringWidth(notifcationStatus))
 	topRow = lipgloss.JoinHorizontal(
 		lipgloss.Center,
-		lipgloss.NewStyle().Foreground(Theme.Highlight).Render(truncatedTitle),
+		highlightStyle.Render(truncatedTitle),
 		strings.Repeat(" ", topRowGap),
 		notifcationStatus,
 	)
@@ -638,7 +638,7 @@ func footerInformation(m model, width int) string {
 	bottomRow = lipgloss.JoinHorizontal(
 		lipgloss.Center,
 		currentTime,
-		lipgloss.NewStyle().Foreground(Theme.Special).Render(progressBar),
+		specialStyle.Render(progressBar),
 		totalTime,
 	)
 
@@ -647,9 +647,9 @@ func footerInformation(m model, width int) string {
 
 // Generete the help overlay
 func helpViewContent() string {
-	keyStyle := lipgloss.NewStyle().Foreground(Theme.Special).Bold(true)
-	descStyle := lipgloss.NewStyle().Foreground(Theme.Subtle)
-	titleStyle := lipgloss.NewStyle().Foreground(Theme.Highlight).Bold(true).MarginBottom(1)
+	keyStyle := specialStyle.Bold(true)
+	descStyle := subtleStyle
+	titleStyle := highlightStyle.Bold(true).MarginBottom(1)
 	colStyle := lipgloss.NewStyle().MarginRight(4)
 
 	// Helper to format lines
@@ -772,7 +772,7 @@ func addToPlaylistContent(m model) string {
 		style := lipgloss.NewStyle()
 
 		if m.cursorPopup == i {
-			style = style.Foreground(Theme.Highlight).Bold(true)
+			style = highlightStyle.Bold(true)
 			cursor = "> "
 		}
 
@@ -791,7 +791,7 @@ func addRatingContent(m model) string {
 		style := lipgloss.NewStyle()
 
 		if m.cursorPopup == i {
-			style = style.Foreground(Theme.Highlight).Bold(true)
+			style = highlightStyle.Bold(true)
 			cursor = "> "
 		} else {
 			cursor = "  "
@@ -1102,7 +1102,7 @@ func generateHeader[T any](cols []headerColumn[T], widths []int) string {
 		}
 	}
 
-	headerStyle := lipgloss.NewStyle().Bold(true).Foreground(Theme.Subtle)
+	headerStyle := subtleStyle.Bold(true)
 	return headerStyle.Render("  " + strings.TrimRight(headerText, " "))
 }
 

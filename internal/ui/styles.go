@@ -98,8 +98,7 @@ func InitStyles() {
 		Padding(1, 2)
 
 	// Cursor
-	cursorStyle = lipgloss.NewStyle().
-		Foreground(Theme.Highlight)
+	cursorStyle = highlightStyle
 
 	// Cursor Focused
 	cursorFocusedStyle = lipgloss.NewStyle().
