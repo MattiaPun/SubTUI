@@ -131,22 +131,10 @@ func (m model) BaseView() string {
 	centerView := lipgloss.JoinHorizontal(lipgloss.Top, leftPane, rightPane)
 
 	// FOOTER
-	footerBorder := borderStyle
-	if m.focus == focusSong {
-		footerBorder = activeBorderStyle
-	}
-
-	footerTopBorder := footerTopBorder(m)
-	footerContent := footerBorder.
-		BorderTop(false).
+	footerView := m.buildFooterBorder().
 		Width(m.width - 2).
 		Height(footerHeight).
 		Render(footerContent(m))
-
-	footerView := lipgloss.JoinVertical(lipgloss.Left,
-		footerTopBorder,
-		footerContent,
-	)
 
 	// COMBINE ALL VERTICALLY
 	return lipgloss.JoinVertical(lipgloss.Left,
@@ -550,30 +538,23 @@ func footerContent(m model) string {
 	return "\n" + content
 }
 
-// Generate the footer top border
-func footerTopBorder(m model) string {
-	leftCorner := "╭"
-	rightCorner := "╮"
-
-	var queueStatus string
-	var gapWidth int
+func (m model) buildFooterBorder() lipgloss.Style {
+	base := borderStyle
+	if m.focus == focusSong {
+		base = activeBorderStyle
+	}
 
 	if len(m.queue) > 0 {
-		queueStatus = fmt.Sprintf(" QUEUE (%d/%d) ", m.queueIndex+1, len(m.queue))
+		queueStatus := fmt.Sprintf(" QUEUE (%d/%d) ", m.queueIndex+1, len(m.queue))
+
+		b := lipgloss.RoundedBorder()
+		topWidth := max(m.width-2-len(queueStatus)-2, 0)
+		b.Top = strings.Repeat("─", topWidth) + queueStatus + "──"
+
+		return base.Border(b)
 	}
 
-	gapWidth = m.width - len(queueStatus) - 2 - 2 // 2: Corners | 2: Spaces
-	if gapWidth < 0 {
-		gapWidth = 0
-	}
-
-	return lipgloss.JoinHorizontal(lipgloss.Center,
-		leftCorner,
-		strings.Repeat("─", gapWidth),
-		queueStatus,
-		"──",
-		rightCorner,
-	)
+	return base
 }
 
 // Generate the footer information
