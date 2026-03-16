@@ -87,7 +87,7 @@ func PlaySong(songID string, startPaused bool) error {
 		return fmt.Errorf("player not initialized")
 	}
 
-	url := api.SubsonicStream(songID)
+	url := api.SubsonicStream(songID) + fmt.Sprintf("&_nonce=%d", time.Now().UnixNano())
 	if err := mpvClient.LoadFile(url, mpv.LoadFileModeReplace); err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func EnqueueSong(songID string) error {
 		return fmt.Errorf("player not initialized")
 	}
 
-	url := api.SubsonicStream(songID)
+	url := api.SubsonicStream(songID) + fmt.Sprintf("&_nonce=%d", time.Now().UnixNano())
 	return mpvClient.LoadFile(url, mpv.LoadFileModeAppend)
 }
 

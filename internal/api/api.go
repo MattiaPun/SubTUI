@@ -343,8 +343,11 @@ func SubsonicCoverArtUrl(id string, size int) string {
 
 func SubsonicCoverArt(id string, size int) ([]byte, error) {
 	url := SubsonicCoverArtUrl(id, size)
+
+	log.Printf("[API] Request: %s", redactURL(url))
 	resp, err := httpClient.Get(url)
 	if err != nil {
+		log.Printf("[API] Failed to get cover Art: %v", err)
 		return nil, err
 	}
 	defer func() { _ = resp.Body.Close() }()
@@ -369,6 +372,7 @@ func SubsonicSaveQueue(ids []string, currentID string) {
 
 	url := baseUrl + "?" + v.Encode()
 
+	log.Printf("[API] Request: %s", redactURL(url))
 	resp, err := httpClient.Get(url)
 	if err != nil {
 		log.Printf("[API] Failed to save queue: %v", err)

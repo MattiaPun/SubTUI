@@ -241,74 +241,93 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	cmds = append(cmds, syncPlayerCmd())
 
+	// Queue ended
 	if m.playerStatus.Path == "" || m.playerStatus.Path == "<nil>" || len(m.queue) == 0 {
-
 		m.queue = []api.Song{}
-		m.lastPlayedSongID = ""
+		m.lastPlayedSongPath = ""
 
-		// MRPIS Update
+		// Clear MRPIS
 		if m.dbusInstance != nil {
 			m.dbusInstance.ClearMetadata()
+		}
+
+		// Clear album art
+		if api.AppConfig.Theme.DisplayAlbumArt {
+			m.coverArt = nil
 		}
 
 		cmds = append(cmds, tea.SetWindowTitle("SubTUI"))
 		return m, tea.Batch(cmds...)
 	}
 
-	if len(m.queue) > 0 {
-		currentSong := m.queue[m.queueIndex]
+	// Song changed
+	if m.playerStatus.Path != m.lastPlayedSongPath {
 
-		if currentSong.ID != m.lastPlayedSongID {
+		// Update queue index after mpv song change
+		if !strings.Contains(m.playerStatus.Path, "id="+m.queue[m.queueIndex].ID) {
+			nextIndex := m.queueIndex + 1
 
-			m.lastPlayedSongID = currentSong.ID
-			m.scrobbled = false
-
-			// Setup metadata
-			metadata := integration.Metadata{
-				Title:    currentSong.Title,
-				Artist:   currentSong.Artist,
-				Album:    currentSong.Album,
-				Duration: float64(currentSong.Duration), // Cast int to float64
-				ImageURL: api.SubsonicCoverArtUrl(currentSong.ID, 500),
-				Rating:   math.Round(float64(currentSong.Rating*10)) / 10,
+			if nextIndex < len(m.queue) {
+				m.queueIndex = nextIndex
+			} else if nextIndex >= len(m.queue) && m.loopMode == LoopAll {
+				m.queueIndex = 0
 			}
-
-			// System notification
-			if m.notify {
-				go func() {
-					artBytes, err := api.SubsonicCoverArt(currentSong.ID, 50)
-
-					title := "SubTUI"
-					description := fmt.Sprintf("Playing %s - %s", currentSong.Title, currentSong.Artist)
-
-					if err != nil {
-						_ = beeep.Notify(title, description, "")
-					} else {
-						_ = beeep.Notify(title, description, artBytes)
-					}
-				}()
-			}
-
-			// MRPIS Update
-			if m.dbusInstance != nil {
-				m.dbusInstance.UpdateMetadata(metadata)
-			}
-
-			// Discord Update
-			if m.discordRPC && m.discordInstance != nil {
-				m.discordInstance.UpdateActivity(metadata)
-			}
-
-			// Album Art Update
-			if api.AppConfig.Theme.DisplayAlbumArt {
-				cmds = append(cmds, getCoverArtCmd(currentSong.ID))
-			}
-
-			windowTitle := fmt.Sprintf("%s - %s", metadata.Title, metadata.Artist)
-			cmds = append(cmds, tea.SetWindowTitle(windowTitle))
 		}
+
+		// Update queue
+		m.syncNextSong()
+
+		currentSong := m.queue[m.queueIndex]
+		m.lastPlayedSongPath = m.playerStatus.Path // Update previous song
+		m.scrobbled = false                        // Reset scrobble status
+
+		// Setup metadata
+		metadata := integration.Metadata{
+			Title:    currentSong.Title,
+			Artist:   currentSong.Artist,
+			Album:    currentSong.Album,
+			Duration: float64(currentSong.Duration),
+			ImageURL: api.SubsonicCoverArtUrl(currentSong.ID, 500),
+			Rating:   math.Round(float64(currentSong.Rating*10)) / 10,
+		}
+
+		// System notification
+		if m.notify {
+			go func() {
+				artBytes, err := api.SubsonicCoverArt(currentSong.ID, 50)
+
+				title := "SubTUI"
+				description := fmt.Sprintf("Playing %s - %s", currentSong.Title, currentSong.Artist)
+
+				if err != nil {
+					_ = beeep.Notify(title, description, "")
+				} else {
+					_ = beeep.Notify(title, description, artBytes)
+				}
+			}()
+		}
+
+		// MRPIS Update
+		if m.dbusInstance != nil {
+			m.dbusInstance.UpdateMetadata(metadata)
+		}
+
+		// Discord Update
+		if m.discordRPC && m.discordInstance != nil {
+			m.discordInstance.UpdateActivity(metadata)
+		}
+
+		// Album Art Update
+		if api.AppConfig.Theme.DisplayAlbumArt {
+			cmds = append(cmds, getCoverArtCmd(currentSong.ID))
+		}
+
+		windowTitle := fmt.Sprintf("%s - %s", metadata.Title, metadata.Artist)
+		cmds = append(cmds, tea.SetWindowTitle(windowTitle)) // Update windows title
+		cmds = append(cmds, m.savePlayQueue())               // Server queue update
 	}
 
+	// Scrobble after half of the song, or 4 minutes, whichever happens first
 	if len(m.queue) > 0 && m.queueIndex >= 0 && !m.scrobbled {
 		currentSong := m.queue[m.queueIndex]
 
@@ -323,41 +342,6 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 
 				go api.SubsonicScrobble(currentSong.ID, true)
 			}
-		}
-	}
-
-	if m.playerStatus.Path != "" &&
-		m.playerStatus.Path != "<nil>" &&
-		len(m.queue) > 0 &&
-		!strings.Contains(m.playerStatus.Path, "id="+m.queue[m.queueIndex].ID) {
-
-		nextIndex := m.queueIndex + 1
-		m.scrobbled = false
-
-		// Queue next song
-		if nextIndex < len(m.queue) {
-			m.queueIndex = nextIndex
-		}
-
-		nextNextIndex := -1
-		switch m.loopMode {
-		case LoopOne:
-			nextNextIndex = nextIndex
-		case LoopNone:
-			nextNextIndex = nextIndex + 1
-		case LoopAll:
-			if nextIndex == len(m.queue)-1 {
-				nextNextIndex = 0
-			} else {
-				nextNextIndex = nextIndex + 1
-			}
-		}
-
-		// Queue next next song
-		if nextNextIndex < len(m.queue) {
-			player.UpdateNextSong(m.queue[nextNextIndex].ID)
-		} else { // End of queue, clear MPV
-			go player.UpdateNextSong("")
 		}
 	}
 

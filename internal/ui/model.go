@@ -45,13 +45,13 @@ type model struct {
 	coverMosaic mosaic.Mosaic
 
 	// App State
-	err              error
-	loading          bool
-	lastPlayedSongID string
-	scrobbled        bool
-	loginErr         string
-	discordRPC       bool
-	notify           bool
+	err                error
+	loading            bool
+	lastPlayedSongPath string
+	scrobbled          bool
+	loginErr           string
+	discordRPC         bool
+	notify             bool
 
 	// Integrations
 	dbusInstance    *integration.Instance

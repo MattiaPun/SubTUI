@@ -37,3 +37,11 @@ const (
 	loginPasswordHashed
 	loginApi
 )
+
+type headerColumn[T any] struct {
+	Title      string
+	FixedWidth int
+	Weight     float64
+	Value      func(item T) string
+}
+

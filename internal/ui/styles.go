@@ -15,12 +15,19 @@ type Styles struct {
 var Theme Styles
 
 var (
-	borderStyle       lipgloss.Style
-	activeBorderStyle lipgloss.Style
-	loginBoxStyle     lipgloss.Style
-	loginHeaderStyle  lipgloss.Style
-	loginHelpStyle    lipgloss.Style
-	popupStyle        lipgloss.Style
+	subtleStyle          lipgloss.Style
+	highlightStyle       lipgloss.Style
+	specialStyle         lipgloss.Style
+	filteredStyle        lipgloss.Style
+	borderStyle          lipgloss.Style
+	activeBorderStyle    lipgloss.Style
+	loginBoxStyle        lipgloss.Style
+	loginHeaderStyle     lipgloss.Style
+	loginHelpStyle       lipgloss.Style
+	popupStyle           lipgloss.Style
+	cursorStyle          lipgloss.Style
+	cursorFocusedStyle   lipgloss.Style
+	currentPlaySongStyle lipgloss.Style
 )
 
 func checkColors(colors []string) lipgloss.AdaptiveColor {
@@ -40,6 +47,22 @@ func InitStyles() {
 	Theme.Highlight = checkColors(api.AppConfig.Theme.Highlight)
 	Theme.Special = checkColors(api.AppConfig.Theme.Special)
 	Theme.Filtered = checkColors(api.AppConfig.Theme.Filtered)
+
+	// Subtle
+	subtleStyle = lipgloss.NewStyle().
+		Foreground(Theme.Subtle)
+
+	// Highlight
+	highlightStyle = lipgloss.NewStyle().
+		Foreground(Theme.Highlight)
+
+	// Speci1al
+	specialStyle = lipgloss.NewStyle().
+		Foreground(Theme.Special)
+
+	// Filtered
+	filteredStyle = lipgloss.NewStyle().
+		Foreground(Theme.Filtered)
 
 	// Global Borders
 	borderStyle = lipgloss.NewStyle().
@@ -74,4 +97,15 @@ func InitStyles() {
 		BorderForeground(Theme.Highlight).
 		Padding(1, 2)
 
+	// Cursor
+	cursorStyle = highlightStyle
+
+	// Cursor Focused
+	cursorFocusedStyle = lipgloss.NewStyle().
+		Foreground(Theme.Highlight).
+		Bold(true)
+
+	// Current playing song
+	currentPlaySongStyle = lipgloss.NewStyle().
+		Foreground(Theme.Special)
 }

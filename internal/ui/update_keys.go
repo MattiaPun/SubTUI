@@ -787,6 +787,10 @@ func mediaClearQueue(m model) model {
 		m.queueIndex = 0
 	}
 
+	if m.playerStatus.Paused {
+		player.Stop()
+	}
+
 	// Sync MPV's Queue
 	m.syncNextSong()
 
