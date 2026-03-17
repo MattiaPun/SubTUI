@@ -419,8 +419,7 @@ func SubsonicCreateShare(ID string) (string, error) {
 	return url, nil
 }
 
-func SubsonicGetLyrics(songID string) (*Lyrics, error) {
-	params := map[string]string{
+func SubsonicGetLyrics(songID string) (*Lyrics, error) { params := map[string]string{
 		"id": songID,
 	}
 
@@ -431,6 +430,21 @@ func SubsonicGetLyrics(songID string) (*Lyrics, error) {
 	}
 
 	if len(data.Response.LyricsList.Lyrics) > 0 {
+		isNotSynced := true
+
+		for _, lyric := range data.Response.LyricsList.Lyrics {
+			for _, line := range lyric.Lines {
+				if line.Start != 0 {
+					isNotSynced = false
+					break
+				}
+			}
+		}
+
+		if isNotSynced {
+			return nil, nil
+		}
+
 		return &data.Response.LyricsList.Lyrics[0], nil
 	}
 
