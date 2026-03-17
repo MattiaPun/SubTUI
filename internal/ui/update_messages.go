@@ -256,6 +256,9 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 			m.coverArt = nil
 		}
 
+		// Clear lyrics
+		m.lyrics = nil
+
 		cmds = append(cmds, tea.SetWindowTitle("SubTUI"))
 		return m, tea.Batch(cmds...)
 	}
@@ -280,6 +283,8 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 		currentSong := m.queue[m.queueIndex]
 		m.lastPlayedSongPath = m.playerStatus.Path // Update previous song
 		m.scrobbled = false                        // Reset scrobble status
+
+		cmds = append(cmds, getLyricsCmd(currentSong.ID))
 
 		// Setup metadata
 		metadata := integration.Metadata{
@@ -428,6 +433,11 @@ func (m model) handleViewStarredSongs(msg viewStarredSongsMsg) (tea.Model, tea.C
 func (m model) handleCoverArt(msg coverArtMsg) (tea.Model, tea.Cmd) {
 	m.coverArt = msg.img
 	m.coverMosaic = mosaic.New().Width(16).Height(8)
+	return m, nil
+}
+
+func (m model) handleLyricsResult(msg lyricsResultMsg) (tea.Model, tea.Cmd) {
+	m.lyrics = msg.lyrics
 	return m, nil
 }
 

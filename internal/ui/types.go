@@ -24,6 +24,7 @@ const (
 	displaySongs = iota
 	displayAlbums
 	displayArtist
+	displayLyrics
 )
 
 const (
@@ -44,4 +45,3 @@ type headerColumn[T any] struct {
 	Weight     float64
 	Value      func(item T) string
 }
-

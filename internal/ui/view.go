@@ -120,6 +120,8 @@ func (m model) BaseView() string {
 		mainContent = mainAlbumsContent(m, mainWidth, mainHeight)
 	} else if m.displayMode == displayArtist {
 		mainContent = mainArtistContent(m, mainWidth, mainHeight)
+	} else if m.displayMode == displayLyrics {
+		mainContent = mainLyricsContent(m)
 	}
 
 	rightPane := mainBorder.
@@ -549,6 +551,37 @@ func mainArtistContent(m model, width int, height int) string {
 		headerRow,
 		subtleStyle.Render("  "+strings.Repeat("-", availableWidth)),
 		artistRows,
+	)
+}
+
+// Generate the main view for lyrics
+func mainLyricsContent(m model) string {
+	// Return if no artists
+	if m.lyrics == nil {
+		return "\n  Lyrics not available for the current song"
+	}
+
+	previousLine := ""
+	currentLine := ""
+	nextLine := ""
+
+	for _, line := range m.lyrics.Lines {
+		if line.Start > int64(m.playerStatus.Current*1000) {
+			nextLine = fmt.Sprintf("  %s\n", line.Value)
+			break
+		}
+
+		previousLine = currentLine
+		currentLine = fmt.Sprintf("  %s\n", line.Value)
+	}
+
+	return lipgloss.JoinVertical(
+		lipgloss.Left,
+		previousLine,
+		"",
+		highlightStyle.Render(currentLine),
+		"",
+		nextLine,
 	)
 }
 

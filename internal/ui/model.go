@@ -44,6 +44,9 @@ type model struct {
 	coverArt    image.Image
 	coverMosaic mosaic.Mosaic
 
+	// Lyrics
+	lyrics *api.Lyrics
+
 	// App State
 	err                error
 	loading            bool
@@ -130,6 +133,10 @@ type shuffledSongsMsg struct {
 
 type starredResultMsg struct {
 	result *api.SearchResult3
+}
+
+type lyricsResultMsg struct {
+	lyrics *api.Lyrics
 }
 
 type playQueueResultMsg struct {

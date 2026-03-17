@@ -115,7 +115,7 @@ func subsonicGET(endpoint string, params map[string]string) (*SubsonicResponse, 
 	var result SubsonicResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, err
-	}
+	} 
 
 	return &result, nil
 }
@@ -417,4 +417,22 @@ func SubsonicCreateShare(ID string) (string, error) {
 	log.Printf("[SHARE] Generated Share URL: %s", url)
 
 	return url, nil
+}
+
+func SubsonicGetLyrics(songID string) (*Lyrics, error) {
+	params := map[string]string{
+		"id": songID,
+	}
+
+	data, err := subsonicGET("/getLyricsBySongId", params)
+	if err != nil {
+		log.Printf("[API] Error: %v", err)
+		return nil, err
+	}
+
+	if len(data.Response.LyricsList.Lyrics) > 0 {
+		return &data.Response.LyricsList.Lyrics[0], nil
+	}
+
+	return nil, nil
 }

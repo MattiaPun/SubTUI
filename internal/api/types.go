@@ -11,10 +11,11 @@ import (
 
 type SubsonicResponse struct {
 	Response struct {
-		Status            string         `json:"status"`
-		User              *SubsonicUser  `json:"user,omitempty"`
-		Error             *SubsonicError `json:"error,omitempty"`
-		SearchResult      SearchResult3  `json:"searchResult3"`
+		Status            string             `json:"status"`
+		User              *SubsonicUser      `json:"user,omitempty"`
+		Error             *SubsonicError     `json:"error,omitempty"`
+		SearchResult      SearchResult3      `json:"searchResult3"`
+		LyricsList        SubsonicLyricsList `json:"lyricsList"`
 		PlaylistContainer struct {
 			Playlists []Playlist `json:"playlist"`
 		} `json:"playlists"`
@@ -44,6 +45,10 @@ type SubsonicResponse struct {
 	} `json:"subsonic-response"`
 }
 
+type SubsonicLyricsList struct {
+	Lyrics []Lyrics `json:"structuredLyrics"`
+}
+
 type SubsonicUser struct {
 	Username string `json:"username"`
 	Email    string `json:"email"`
@@ -70,6 +75,18 @@ type Artist struct {
 	Name       string `json:"name"`
 	AlbumCount int    `json:"albumCount"`
 	Rating     int    `json:"userRating"`
+}
+
+type Lyrics struct {
+	DisplayArtist string       `json:"displayArtist"`
+	DisplayTitle  string       `json:"displayTitle"`
+	Lang          string       `json:"lang"`
+	Lines         []LyricsLine `json:"line"`
+}
+
+type LyricsLine struct {
+	Start int64    `json:"start"`
+	Value string `json:"value"`
 }
 
 type Album struct {

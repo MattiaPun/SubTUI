@@ -212,6 +212,11 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return toggleNotifications(m), nil
 	}
 
+	if keyMatches(key, api.AppConfig.Keybinds.Other.ToLyricsDisplay) {
+		m.displayMode = displayLyrics
+		return m, nil
+	}
+
 	return m, nil
 }
 

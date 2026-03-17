@@ -120,6 +120,16 @@ func getStarredCmd() tea.Cmd {
 	}
 }
 
+func getLyricsCmd(songID string) tea.Cmd {
+	return func() tea.Msg {
+		lyrics, err := api.SubsonicGetLyrics(songID)
+		if err != nil {
+			return errMsg{err}
+		}
+		return lyricsResultMsg{lyrics}
+	}
+}
+
 func openLikedSongsCmd() tea.Cmd {
 	return func() tea.Msg {
 		result, err := api.SubsonicGetStarred()
