@@ -18,6 +18,18 @@ func (m model) View() string {
 		return viewToSmallContent(m)
 	}
 
+	if m.showMediaPlayer {
+		content := mediaPlayerContent(m)
+
+		if m.showHelp {
+			bg := BackgroundWrapper{RenderedView: content}
+			return overlay.New(m.helpModel, bg, overlay.Center, overlay.Center, 0, 0).View()
+
+		}
+
+		return zone.Scan(content)
+	}
+
 	base := m.BaseView()
 
 	if m.showPlaylists {
@@ -692,6 +704,368 @@ func footerInformation(m model, width int) string {
 	return lipgloss.JoinVertical(lipgloss.Center, topRow, middleRow, "", bottomRow)
 }
 
+// Generate the media player
+func mediaPlayerContent(m model) string {
+	var availableHeight int
+	var availableWidth int
+	var sideHeight int
+	var lyricsHeight int
+	var sideContentWidth int
+	var lyricsContentWidth int
+
+	var mediaPlayerContent string
+	var progressBarContent string
+
+	availableWidth = m.width - 4       // 2 * 2 borders
+	availableHeight = m.height - 3     // 3: progress bar
+	sideHeight = availableHeight - 3   // 3 borders
+	lyricsHeight = availableHeight - 2 // 2 borders
+
+	sideContentWidth = int(float64(availableWidth) * 0.4)
+	lyricsContentWidth = int(float64(availableWidth) * 0.6)
+
+	if sideContentWidth+lyricsContentWidth != m.width-4 {
+		lyricsContentWidth += 1
+	}
+
+	mediaPlayerContent = lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		mediaPlayerSideContent(m, sideContentWidth, sideHeight),
+		mediaPlayerLyricsContent(m, lyricsContentWidth, lyricsHeight),
+	)
+
+	progressBarContent = mediaPlayerProgressBarContent(m, availableWidth+2)
+
+	return lipgloss.JoinVertical(
+		lipgloss.Left,
+		mediaPlayerContent,
+		progressBarContent,
+	)
+}
+
+// Generate the media player side (manager)
+func mediaPlayerSideContent(m model, width int, height int) string {
+	var mediaPlayerSongContent string
+	var mediaPlayerQueueContent string
+	var mediaPlayerCoverArtContent string
+
+	var mediaInfoHeight int
+	var queueHeight int
+	var coverArtHeight int
+
+	queueHeight = 7      // STATIC: 5 SONGS + TITLE + HEADER
+	mediaInfoHeight = 12 // STATIC: 9 ATTIRBUTES + STATUS + 2 PADDINGS
+
+	// Media Info
+	mediaPlayerSongContent = borderStyle.
+		Width(width).
+		Height(mediaInfoHeight).
+		Render(mediaPlayerSideSongContent(m, width, mediaInfoHeight))
+
+	// Queue
+	mediaPlayerQueueContent = borderStyle.
+		Width(width).
+		Height(queueHeight).
+		Render(mediaPlayerSideQueueContent(m, width))
+
+	// Cover Art
+	coverArtHeight = height - lipgloss.Height(mediaPlayerSongContent) - lipgloss.Height(mediaPlayerQueueContent) + 1
+	mediaPlayerCoverArtContent = borderStyle.
+		Width(width).
+		Height(coverArtHeight).
+		Align(lipgloss.Center).
+		AlignVertical(lipgloss.Center).
+		Render(mediaPlayerSideCoverArtContent(m))
+
+	// Combining
+	return lipgloss.JoinVertical(
+		lipgloss.Left,
+		mediaPlayerSongContent,
+		mediaPlayerQueueContent,
+		mediaPlayerCoverArtContent,
+	)
+}
+
+// Generate the media player song information
+func mediaPlayerSideSongContent(m model, width int, height int) string {
+	var songSection string
+	var statusSection string
+
+	// Song Section
+	var rating string
+	var disc string
+	var track string
+
+	song := m.queue[m.queueIndex]
+
+	title := fmt.Sprintf(" %s    : %s", highlightStyle.Bold(true).Render("Title"), LimitString(song.Title, width-12))
+	album := fmt.Sprintf(" %s    : %s", highlightStyle.Bold(true).Render("Album"), LimitString(song.Album, width-12))
+	artist := fmt.Sprintf(" %s   : %s", highlightStyle.Bold(true).Render("Artist"), LimitString(song.Artist, width-12))
+	year := fmt.Sprintf(" %s     : %d", highlightStyle.Bold(true).Render("Year"), song.Year)
+	genre := fmt.Sprintf(" %s    : %s", highlightStyle.Bold(true).Render("Genre"), LimitString(song.Genre, width-12))
+	plays := fmt.Sprintf(" %s    : %d", highlightStyle.Bold(true).Render("Plays"), song.PlayCount)
+
+	if song.Rating == 0 {
+		rating = fmt.Sprintf(" %s   : %s", highlightStyle.Bold(true).Render("Rating"), LimitString("No rating", width-12))
+	} else {
+		rating = fmt.Sprintf(" %s   : %s", highlightStyle.Bold(true).Render("Rating"), LimitString(strings.Repeat("★", song.Rating), width-12))
+	}
+
+	if song.DiscNumber > 0 {
+		disc = fmt.Sprintf(" %s     : %d", highlightStyle.Bold(true).Render("Disc"), song.DiscNumber)
+	} else {
+		disc = fmt.Sprintf(" %s     : /", highlightStyle.Bold(true).Render("Disc"))
+
+	}
+
+	if song.TrackNumber > 0 {
+		track = fmt.Sprintf(" %s    : %d", highlightStyle.Bold(true).Render("Track"), song.TrackNumber)
+	} else {
+		track = fmt.Sprintf(" %s    : / ", highlightStyle.Bold(true).Render("Track"))
+	}
+
+	songSection = lipgloss.JoinVertical(
+		lipgloss.Left,
+		title,
+		album,
+		artist,
+		"", // Padding
+		disc,
+		track,
+		year,
+		genre,
+		plays,
+		rating,
+	)
+
+	// Status Section
+	var notificationStatus string
+	var loopStatus string
+	var volumeStatus string
+
+	var notificationGap int
+	var loopGap int
+	var volumeGap int
+
+	if !m.notify {
+		notificationStatus = "[Silent]"
+	}
+
+	switch m.loopMode {
+	case LoopNone:
+		loopStatus = ""
+	case LoopAll:
+		loopStatus = "[Loop all]"
+	case LoopOne:
+		loopStatus = "[Loop one]"
+	}
+
+	if m.playerStatus.Volume != 100 {
+		volumeStatus = fmt.Sprintf("[%v%%]", m.playerStatus.Volume)
+	}
+
+	statusAvailableWidth := width - 4 // 2x 2 padding
+	statusWidth := statusAvailableWidth / 3
+
+	notificationGap = (statusWidth - len(notificationStatus)) / 2
+	loopGap = (statusWidth - len(loopStatus)) / 2
+	volumeGap = (statusWidth - len(volumeStatus)) / 2
+
+	if notificationGap < 0 {
+		notificationGap = 0
+	}
+	if loopGap < 0 {
+		loopGap = 0
+	}
+	if volumeGap < 0 {
+		volumeGap = 0
+	}
+
+	statusSection = lipgloss.JoinHorizontal(lipgloss.Center,
+		strings.Repeat(" ", notificationGap)+notificationStatus+strings.Repeat(" ", notificationGap),
+		strings.Repeat(" ", loopGap)+loopStatus+strings.Repeat(" ", loopGap),
+		strings.Repeat(" ", volumeGap)+volumeStatus+strings.Repeat(" ", volumeGap),
+	)
+
+	// Combining
+	verticalGap := height - strings.Count(songSection, "\n") - 3 // 3: Padding
+	if verticalGap < 0 {
+		verticalGap = 0
+	}
+
+	return lipgloss.JoinVertical(lipgloss.Left,
+		songSection,
+		strings.Repeat("\n", verticalGap),
+		statusSection,
+	)
+}
+
+// Generate the media player queue
+func mediaPlayerSideQueueContent(m model, width int) string {
+	var header string
+	var separator string
+	var queue string
+
+	header = highlightStyle.Bold(true).Render(" Next up:")
+	separator = strings.Repeat("-", width)
+
+	for i := 0; i < 5; i++ {
+		if m.queueIndex+i < len(m.queue) {
+			song := m.queue[m.queueIndex+i]
+			queue += truncate(fmt.Sprintf(" %d. %s - %s", i+1, song.Title, song.Artist), width) + "\n"
+		} else {
+			queue += "\n"
+		}
+	}
+
+	// Remove last newline
+	queue = strings.TrimSuffix(queue, "\n")
+
+	return lipgloss.JoinVertical(
+		lipgloss.Left,
+		header,
+		separator,
+		queue,
+	)
+}
+
+// Generate the media player art cover
+func mediaPlayerSideCoverArtContent(m model) string {
+	if m.coverArt == nil {
+		// No album art
+		return "No album art to display"
+	} else {
+		// Display album art
+		return m.coverMosaic.Render(m.coverArt)
+	}
+}
+
+// Generate the media player lyrics
+func mediaPlayerLyricsContent(m model, width int, height int) string {
+	var visibleLines []string
+	var finalLyrics string
+	var currentLineId int
+
+	if len(m.songLyrics) != 0 && len(m.songLyrics[0].Lines) > 0 { // Lyrics found
+		if m.songLyrics[0].Synced { // Display synced lyrics
+			// Pre-process all lines with styles
+			var renderedLines []string
+
+			lines := m.songLyrics[0].Lines
+			totalLines := len(lines)
+			currentTime := int(m.playerStatus.Current)
+
+			for i, line := range lines {
+				var lineType int
+				var style lipgloss.Style
+
+				lineStartTime := line.Start / 1000
+
+				if lineStartTime <= currentTime {
+					if i+1 < totalLines {
+						nextLineStartTime := lines[i+1].Start / 1000
+						if currentTime < nextLineStartTime {
+							lineType = currentLine
+							currentLineId = i
+						} else {
+							lineType = pastLine
+						}
+					} else {
+						lineType = currentLine
+						currentLineId = i
+					}
+				} else {
+					lineType = futureLine
+				}
+
+				// Apply styling
+				switch lineType {
+				case pastLine:
+					style = filteredStyle
+				case currentLine:
+					style = specialStyle.Bold(true)
+				case futureLine:
+					style = lipgloss.NewStyle()
+				}
+
+				renderedLines = append(renderedLines, style.Render(truncate(line.Value, width)))
+			}
+
+			middleLineHeight := height / 2 // Display using current line in middle
+
+			for i := 0; i < height; i++ {
+				// Calculate which line should go in this slot
+				actualIdx := currentLineId - middleLineHeight + i
+
+				if actualIdx >= 0 && actualIdx < len(renderedLines) {
+					visibleLines = append(visibleLines, renderedLines[actualIdx]) // Print line if in bounds
+				} else {
+					visibleLines = append(visibleLines, "") // Print empty line if out of bounds
+				}
+			}
+
+		} else { // Display unsynced lyrics
+
+			visibleLines = append(visibleLines, "") // padding
+			visibleLines = append(visibleLines, "") // padding
+
+			for i := m.songLinesOffset; i < len(m.songLyrics[0].Lines); i++ {
+				if i < height-2 { // 1 padding top | 1 padding bottom
+					visibleLines = append(visibleLines, truncate(m.songLyrics[0].Lines[i].Value, width))
+				}
+			}
+		}
+	} else { // No lyrics found
+		visibleLines = append(visibleLines, subtleStyle.Render("\nNo lyrics found for this song"))
+	}
+
+	finalLyrics = strings.Join(visibleLines, "\n")
+
+	return borderStyle.
+		Width(width).
+		Height(height).
+		Align(lipgloss.Center).
+		Render(finalLyrics)
+}
+
+// Generate the media player progress bar
+func mediaPlayerProgressBarContent(m model, width int) string {
+	var availableWidth int
+
+	var currentTime string
+	var progressBar string
+	var totalTime string
+	var bar string
+
+	availableWidth = width - 4 // 2x padding
+
+	currentTime = formatDuration(int(m.playerStatus.Current))
+	totalTime = formatDuration(int(m.playerStatus.Duration))
+
+	percent := 0.0
+	if m.playerStatus.Duration > 0 {
+		percent = m.playerStatus.Current / m.playerStatus.Duration
+	}
+	infoLen := len(currentTime) + 4 + len(totalTime) // 2x padding
+	progressLen := int(percent * float64(availableWidth-infoLen))
+	progressBar += " [" + strings.Repeat("=", progressLen) + ">"
+	progressBar += strings.Repeat("-", availableWidth-infoLen-progressLen-1) + "] " // >-char
+
+	bar = lipgloss.JoinHorizontal(
+		lipgloss.Center,
+		"  ",
+		currentTime,
+		specialStyle.Render(progressBar),
+		totalTime,
+		"  ",
+	)
+
+	return borderStyle.
+		Width(width).
+		Height(1).
+		Render(bar)
+}
+
 // Generete the help overlay
 func helpViewContent() string {
 	keyStyle := specialStyle.Bold(true)
@@ -1182,4 +1556,34 @@ func generateStar(m model, ID string) string {
 	}
 
 	return "  "
+}
+
+// Helper: Calculate album art size
+func calculateCoverArtSize(m model) (int, int) {
+	if !m.showMediaPlayer {
+		return 16, 8
+	}
+
+	maxWidth := int(float64(m.width) * 0.4)
+	maxHeight := m.height - 3 - 14 - 9 // 3: progress bar | 14: media info | 9: queue | 2: cover art borders
+
+	// Try to fill vertically
+	width := maxWidth
+	height := width / 2
+
+	// If too high, try to fill horizontally
+	if height > maxHeight {
+		height = maxHeight
+		width = height * 2
+	}
+
+	// Safeguard: minimum sizes
+	if width < 2 {
+		width = 2
+	}
+	if height < 1 {
+		height = 1
+	}
+
+	return width, height
 }

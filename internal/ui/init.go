@@ -35,6 +35,7 @@ func InitialModel() model {
 		lastPlayedSongPath: "",
 		loginInputs:        initialLoginInputs(),
 		lastKey:            "",
+		showMediaPlayer:    false,
 		showHelp:           false,
 		showPlaylists:      false,
 		helpModel:          NewHelpModel(),

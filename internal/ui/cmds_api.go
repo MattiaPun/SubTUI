@@ -142,7 +142,7 @@ func toggleStarCmd(id string, isCurrentlyStarred bool) tea.Cmd {
 	}
 }
 
-func getCoverArtCmd(songID string) tea.Cmd {
+func getCoverArtCmd(songID string, width int, height int) tea.Cmd {
 	return func() tea.Msg {
 		imgData, err := api.SubsonicCoverArt(songID, 500)
 		if err != nil {
@@ -154,7 +154,11 @@ func getCoverArtCmd(songID string) tea.Cmd {
 			return nil
 		}
 
-		return coverArtMsg{img: img}
+		return coverArtMsg{
+			img:    img,
+			width:  width,
+			height: height,
+		}
 	}
 }
 
@@ -213,6 +217,21 @@ func createMediaShareCmd(ID string) tea.Cmd {
 
 			return createShareMsg{url: url}
 		}
+		return nil
+	}
+}
+
+func getLyricsCmd(ID string) tea.Cmd {
+	return func() tea.Msg {
+		if ID != "" {
+			result, err := api.SubsonicGetLyrics(ID)
+
+			if err != nil {
+				return errMsg{err}
+			}
+			return getLyricsMsg{result}
+		}
+
 		return nil
 	}
 }

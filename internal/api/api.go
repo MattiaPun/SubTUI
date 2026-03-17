@@ -418,3 +418,16 @@ func SubsonicCreateShare(ID string) (string, error) {
 
 	return url, nil
 }
+
+func SubsonicGetLyrics(ID string) ([]StructuredLyrics, error) {
+	params := map[string]string{
+		"id": ID,
+	}
+
+	data, err := subsonicGET("/getLyricsBySongId", params)
+	if err != nil {
+		log.Printf("[ERROR] API Error in GetLyrics: %s", err)
+	}
+
+	return data.Response.LyricsList.StructuredLyrics, nil
+}

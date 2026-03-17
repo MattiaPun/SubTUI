@@ -25,6 +25,21 @@ func (m model) handleWindowResize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 	m.width = msg.Width
 	m.height = msg.Height
 
+	if m.showMediaPlayer {
+		coverMosaicWidth, coverMosaicHeight := calculateCoverArtSize(m)
+
+		if m.coverArt != nil {
+			resModel, _ := m.handleCoverArt(coverArtMsg{
+				img:    m.coverArt,
+				width:  coverMosaicWidth,
+				height: coverMosaicHeight,
+			})
+			if updatedModel, ok := resModel.(model); ok {
+				m = updatedModel
+			}
+		}
+	}
+
 	return m, nil
 }
 
@@ -319,8 +334,12 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 
 		// Album Art Update
 		if api.AppConfig.Theme.DisplayAlbumArt {
-			cmds = append(cmds, getCoverArtCmd(currentSong.ID))
+			cmds = append(cmds, getCoverArtCmd(currentSong.ID, 16, 8))
 		}
+
+		// Lyrics Update/reset
+		cmds = append(cmds, getLyricsCmd(currentSong.ID))
+		m.songLinesOffset = 0
 
 		windowTitle := fmt.Sprintf("%s - %s", metadata.Title, metadata.Artist)
 		cmds = append(cmds, tea.SetWindowTitle(windowTitle)) // Update windows title
@@ -427,7 +446,7 @@ func (m model) handleViewStarredSongs(msg viewStarredSongsMsg) (tea.Model, tea.C
 
 func (m model) handleCoverArt(msg coverArtMsg) (tea.Model, tea.Cmd) {
 	m.coverArt = msg.img
-	m.coverMosaic = mosaic.New().Width(16).Height(8)
+	m.coverMosaic = mosaic.New().Width(msg.width).Height(msg.height)
 	return m, nil
 }
 
@@ -464,6 +483,11 @@ func (m model) handleCreateShare(msg createShareMsg) (tea.Model, tea.Cmd) {
 		log.Printf("Failed to write to clipboard")
 	}
 
+	return m, nil
+}
+
+func (m model) handleLyrics(msg getLyricsMsg) (tea.Model, tea.Cmd) {
+	m.songLyrics = msg.result
 	return m, nil
 }
 

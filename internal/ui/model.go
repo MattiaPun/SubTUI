@@ -73,11 +73,12 @@ type model struct {
 	// Input State
 	lastKey string
 
-	// Overlay States
-	showHelp      bool
-	showPlaylists bool
-	showRating    bool
-	helpModel     HelpModel
+	// View States
+	showMediaPlayer bool
+	showHelp        bool
+	showPlaylists   bool
+	showRating      bool
+	helpModel       HelpModel
 
 	// Pagination State
 	lastSearchQuery string
@@ -88,6 +89,10 @@ type model struct {
 	// Mouse state
 	lastClickTime time.Time
 	lastClickId   string
+
+	// Lyrics
+	songLyrics      []api.StructuredLyrics
+	songLinesOffset int
 }
 
 type HelpModel struct {
@@ -139,11 +144,17 @@ type playQueueResultMsg struct {
 type viewStarredSongsMsg *api.SearchResult3
 
 type coverArtMsg struct {
-	img image.Image
+	img    image.Image
+	width  int
+	height int
 }
 
 type createShareMsg struct {
 	url string
+}
+
+type getLyricsMsg struct {
+	result []api.StructuredLyrics
 }
 
 type errMsg struct {

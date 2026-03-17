@@ -22,6 +22,10 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return login(m, msg)
 	}
 
+	if m.showMediaPlayer {
+		return playerMenu(m, msg)
+	}
+
 	if keyMatches(key, api.AppConfig.Keybinds.Global.CycleFocusNext) {
 		return cycleFocus(m, true), nil
 	}
@@ -163,6 +167,10 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	if keyMatches(key, api.AppConfig.Keybinds.Media.Forward) {
 		return mediaSeekForward(m), nil
+	}
+
+	if keyMatches(key, api.AppConfig.Keybinds.Media.ToggleMediaPlayer) {
+		return mediaToggleMediaPlayer(m), nil
 	}
 
 	// QUEUE KEYBINDS
@@ -859,6 +867,36 @@ func mediaSeekForward(m model) model {
 	return m
 }
 
+func mediaToggleMediaPlayer(m model) model {
+	var coverMosaicWidth int
+	var coverMosaicHeight int
+
+	if m.focus != focusSearch {
+		if m.showMediaPlayer {
+			m.showMediaPlayer = false
+			coverMosaicWidth = 16
+			coverMosaicHeight = 8
+
+		} else {
+			m.showMediaPlayer = true
+			coverMosaicWidth, coverMosaicHeight = calculateCoverArtSize(m)
+		}
+
+		if m.coverArt != nil {
+			resModel, _ := m.handleCoverArt(coverArtMsg{
+				img:    m.coverArt,
+				width:  coverMosaicWidth,
+				height: coverMosaicHeight,
+			})
+			if updatedModel, ok := resModel.(model); ok {
+				m = updatedModel
+			}
+		}
+	}
+
+	return m
+}
+
 func mediaSeekRewind(m model) model {
 	if m.focus != focusSearch {
 		player.Back10Seconds()
@@ -1053,6 +1091,22 @@ func toggleNotifications(m model) model {
 	return m
 }
 
+func lyricsUp(m model) model {
+	if m.songLinesOffset > 0 {
+		m.songLinesOffset = m.songLinesOffset - 1
+	}
+
+	return m
+}
+
+func lyricsDown(m model) model {
+	if len(m.songLyrics) > 0 && m.songLinesOffset < len(m.songLyrics[0].Lines) {
+		m.songLinesOffset = m.songLinesOffset + 1
+	}
+
+	return m
+}
+
 func (m *model) updateLoginInputs(msg tea.Msg) tea.Cmd {
 	cmds := make([]tea.Cmd, len(m.loginInputs))
 	for i := range m.loginInputs {
@@ -1061,146 +1115,143 @@ func (m *model) updateLoginInputs(msg tea.Msg) tea.Cmd {
 	return tea.Batch(cmds...)
 }
 
-func login(m model, msg tea.Msg) (model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		key := msg.String()
-		switch key {
-		case "enter":
-			m.loading = true
-			m.loginErr = ""
+func login(m model, msg tea.KeyMsg) (model, tea.Cmd) {
+	key := msg.String()
+	switch key {
+	case "enter":
+		m.loading = true
+		m.loginErr = ""
 
-			domain := m.loginInputs[0].Value()
-			if !strings.Contains(domain, "http") {
-				m.loginErr = "Please include the protocol at the start 'http(s)'"
+		domain := m.loginInputs[0].Value()
+		if !strings.Contains(domain, "http") {
+			m.loginErr = "Please include the protocol at the start 'http(s)'"
+			return m, nil
+		}
+		api.AppServerConfig.Server.URL = strings.TrimSuffix(domain, "/")
+
+		switch m.loginType {
+		case loginPassword:
+			username := m.loginInputs[1].Value()
+			password := m.loginInputs[2].Value()
+
+			if domain == "" || username == "" || password == "" {
+				m.loginErr = "All fields are required"
 				return m, nil
 			}
-			api.AppServerConfig.Server.URL = strings.TrimSuffix(domain, "/")
 
-			switch m.loginType {
-			case loginPassword:
-				username := m.loginInputs[1].Value()
-				password := m.loginInputs[2].Value()
+			api.AppServerConfig.Server.AuthMethod = "plaintext"
+			api.AppServerConfig.Server.Username = username
+			api.AppServerConfig.Server.Password = password
+			api.AppServerConfig.Server.PasswordToken = ""
+			api.AppServerConfig.Server.PasswordSalt = ""
+			api.AppServerConfig.Server.ApiKey = ""
 
-				if domain == "" || username == "" || password == "" {
-					m.loginErr = "All fields are required"
-					return m, nil
-				}
+		case loginPasswordHashed:
+			username := m.loginInputs[1].Value()
+			passwordToken := m.loginInputs[2].Value()
+			passwordsalt := m.loginInputs[3].Value()
 
-				api.AppServerConfig.Server.AuthMethod = "plaintext"
-				api.AppServerConfig.Server.Username = username
-				api.AppServerConfig.Server.Password = password
-				api.AppServerConfig.Server.PasswordToken = ""
-				api.AppServerConfig.Server.PasswordSalt = ""
-				api.AppServerConfig.Server.ApiKey = ""
-
-			case loginPasswordHashed:
-				username := m.loginInputs[1].Value()
-				passwordToken := m.loginInputs[2].Value()
-				passwordsalt := m.loginInputs[3].Value()
-
-				if domain == "" || username == "" || passwordToken == "" || passwordsalt == "" {
-					m.loginErr = "All fields are required"
-					return m, nil
-				}
-
-				api.AppServerConfig.Server.AuthMethod = "hashed"
-				api.AppServerConfig.Server.Username = username
-				api.AppServerConfig.Server.Password = ""
-				api.AppServerConfig.Server.PasswordToken = passwordToken
-				api.AppServerConfig.Server.PasswordSalt = passwordsalt
-				api.AppServerConfig.Server.ApiKey = ""
-
-			case loginApi:
-				username := m.loginInputs[1].Value()
-				apiKey := m.loginInputs[2].Value()
-
-				if domain == "" || username == "" || apiKey == "" {
-					m.loginErr = "All fields are required"
-					return m, nil
-				}
-
-				api.AppServerConfig.Server.AuthMethod = "api_key"
-				api.AppServerConfig.Server.Username = username
-				api.AppServerConfig.Server.Password = ""
-				api.AppServerConfig.Server.PasswordToken = ""
-				api.AppServerConfig.Server.PasswordSalt = ""
-				api.AppServerConfig.Server.ApiKey = apiKey
+			if domain == "" || username == "" || passwordToken == "" || passwordsalt == "" {
+				m.loginErr = "All fields are required"
+				return m, nil
 			}
 
-			return m, tea.Batch(
-				attemptLoginCmd(),
-			)
+			api.AppServerConfig.Server.AuthMethod = "hashed"
+			api.AppServerConfig.Server.Username = username
+			api.AppServerConfig.Server.Password = ""
+			api.AppServerConfig.Server.PasswordToken = passwordToken
+			api.AppServerConfig.Server.PasswordSalt = passwordsalt
+			api.AppServerConfig.Server.ApiKey = ""
 
-		case "up", "down", "tab", "shift+tab":
-			if key == "up" || key == "shift+tab" {
-				switch m.loginType {
-				case loginPassword:
-					m.loginFocus = ((m.loginFocus-1)%3 + 3) % 3
+		case loginApi:
+			username := m.loginInputs[1].Value()
+			apiKey := m.loginInputs[2].Value()
 
-				case loginPasswordHashed:
-					m.loginFocus = ((m.loginFocus-1)%4 + 4) % 4
-
-				case loginApi:
-					m.loginFocus = ((m.loginFocus-1)%3 + 3) % 3
-				}
-			} else {
-				switch m.loginType {
-				case loginPassword:
-					m.loginFocus = (m.loginFocus + 1) % 3
-
-				case loginPasswordHashed:
-					m.loginFocus = (m.loginFocus + 1) % 4
-
-				case loginApi:
-					m.loginFocus = (m.loginFocus + 1) % 3
-				}
+			if domain == "" || username == "" || apiKey == "" {
+				m.loginErr = "All fields are required"
+				return m, nil
 			}
 
-		case "ctrl+t":
-			m.loginType = (m.loginType + 1) % 3
+			api.AppServerConfig.Server.AuthMethod = "api_key"
+			api.AppServerConfig.Server.Username = username
+			api.AppServerConfig.Server.Password = ""
+			api.AppServerConfig.Server.PasswordToken = ""
+			api.AppServerConfig.Server.PasswordSalt = ""
+			api.AppServerConfig.Server.ApiKey = apiKey
+		}
 
-			// Clear old inputs
-			m.loginInputs[1].SetValue("")
-			m.loginInputs[2].SetValue("")
-			m.loginInputs[3].SetValue("")
+		return m, tea.Batch(
+			attemptLoginCmd(),
+		)
 
-			// Correct the inputs with fitting values
+	case "up", "down", "tab", "shift+tab":
+		if key == "up" || key == "shift+tab" {
 			switch m.loginType {
 			case loginPassword:
-				m.loginInputs[1].Prompt = "Username: "
-				m.loginInputs[1].Placeholder = "username"
-				m.loginInputs[1].EchoMode = textinput.EchoNormal
-
-				m.loginInputs[2].Prompt = "Password: "
-				m.loginInputs[2].Placeholder = "password"
-				m.loginInputs[2].EchoMode = textinput.EchoPassword
+				m.loginFocus = ((m.loginFocus-1)%3 + 3) % 3
 
 			case loginPasswordHashed:
-				m.loginInputs[1].Prompt = "Username: "
-				m.loginInputs[1].Placeholder = "username"
-				m.loginInputs[1].EchoMode = textinput.EchoNormal
-
-				m.loginInputs[2].Prompt = "Token: "
-				m.loginInputs[2].Placeholder = "md5 hash"
-				m.loginInputs[2].EchoMode = textinput.EchoNormal
-
-				m.loginInputs[3].Prompt = "Salt: "
-				m.loginInputs[3].Placeholder = "random string"
-				m.loginInputs[3].EchoMode = textinput.EchoNormal
+				m.loginFocus = ((m.loginFocus-1)%4 + 4) % 4
 
 			case loginApi:
-				m.loginInputs[1].Prompt = "Username: "
-				m.loginInputs[1].Placeholder = "username"
-				m.loginInputs[1].EchoMode = textinput.EchoNormal
+				m.loginFocus = ((m.loginFocus-1)%3 + 3) % 3
+			}
+		} else {
+			switch m.loginType {
+			case loginPassword:
+				m.loginFocus = (m.loginFocus + 1) % 3
 
-				m.loginInputs[2].Prompt = "API Key: "
-				m.loginInputs[2].Placeholder = "api key"
-				m.loginInputs[2].EchoMode = textinput.EchoPassword
+			case loginPasswordHashed:
+				m.loginFocus = (m.loginFocus + 1) % 4
 
-				if m.loginFocus > 1 {
-					m.loginFocus = 1
-				}
+			case loginApi:
+				m.loginFocus = (m.loginFocus + 1) % 3
+			}
+		}
+
+	case "ctrl+t":
+		m.loginType = (m.loginType + 1) % 3
+
+		// Clear old inputs
+		m.loginInputs[1].SetValue("")
+		m.loginInputs[2].SetValue("")
+		m.loginInputs[3].SetValue("")
+
+		// Correct the inputs with fitting values
+		switch m.loginType {
+		case loginPassword:
+			m.loginInputs[1].Prompt = "Username: "
+			m.loginInputs[1].Placeholder = "username"
+			m.loginInputs[1].EchoMode = textinput.EchoNormal
+
+			m.loginInputs[2].Prompt = "Password: "
+			m.loginInputs[2].Placeholder = "password"
+			m.loginInputs[2].EchoMode = textinput.EchoPassword
+
+		case loginPasswordHashed:
+			m.loginInputs[1].Prompt = "Username: "
+			m.loginInputs[1].Placeholder = "username"
+			m.loginInputs[1].EchoMode = textinput.EchoNormal
+
+			m.loginInputs[2].Prompt = "Token: "
+			m.loginInputs[2].Placeholder = "md5 hash"
+			m.loginInputs[2].EchoMode = textinput.EchoNormal
+
+			m.loginInputs[3].Prompt = "Salt: "
+			m.loginInputs[3].Placeholder = "random string"
+			m.loginInputs[3].EchoMode = textinput.EchoNormal
+
+		case loginApi:
+			m.loginInputs[1].Prompt = "Username: "
+			m.loginInputs[1].Placeholder = "username"
+			m.loginInputs[1].EchoMode = textinput.EchoNormal
+
+			m.loginInputs[2].Prompt = "API Key: "
+			m.loginInputs[2].Placeholder = "api key"
+			m.loginInputs[2].EchoMode = textinput.EchoPassword
+
+			if m.loginFocus > 1 {
+				m.loginFocus = 1
 			}
 		}
 	}
@@ -1215,6 +1266,79 @@ func login(m model, msg tea.Msg) (model, tea.Cmd) {
 	}
 
 	return m, m.updateLoginInputs(msg)
+}
+
+func playerMenu(m model, msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	key := msg.String()
+
+	if keyMatches(key, api.AppConfig.Keybinds.Global.Help) {
+		m.showHelp = !m.showHelp
+		return m, nil
+	} else if m.showHelp {
+		return m, nil
+	}
+
+	// NAVIGATION KEYBINDS
+	if keyMatches(key, api.AppConfig.Keybinds.Media.ToggleMediaPlayer) || keyMatches(key, api.AppConfig.Keybinds.Global.Back) {
+		return mediaToggleMediaPlayer(m), nil
+	}
+
+	// MEDIA KEYBINDS
+	if keyMatches(key, api.AppConfig.Keybinds.Media.PlayPause) {
+		return mediaTogglePlay(m, msg), nil
+	}
+
+	if keyMatches(key, api.AppConfig.Keybinds.Media.Next) {
+		return mediaSongSkip(m, msg)
+	}
+
+	if keyMatches(key, api.AppConfig.Keybinds.Media.Prev) {
+		return mediaSongPrev(m, msg)
+	}
+
+	if keyMatches(key, api.AppConfig.Keybinds.Media.VolumeUp) {
+		return mediaVolumeUp(m, msg)
+	}
+
+	if keyMatches(key, api.AppConfig.Keybinds.Media.VolumeDown) {
+		return mediaVolumeDown(m, msg)
+	}
+
+	if keyMatches(key, api.AppConfig.Keybinds.Media.Shuffle) {
+		return mediaShuffle(m), nil
+	}
+
+	if keyMatches(key, api.AppConfig.Keybinds.Media.Loop) {
+		return mediaToggleLoop(m), nil
+	}
+
+	if keyMatches(key, api.AppConfig.Keybinds.Media.Restart) {
+		return mediaRestartSong(m), nil
+	}
+
+	if keyMatches(key, api.AppConfig.Keybinds.Media.Rewind) {
+		return mediaSeekRewind(m), nil
+	}
+
+	if keyMatches(key, api.AppConfig.Keybinds.Media.Forward) {
+		return mediaSeekForward(m), nil
+	}
+
+	// OTHER KEYBINDS
+	if keyMatches(key, api.AppConfig.Keybinds.Other.ToggleNotifications) {
+		return toggleNotifications(m), nil
+	}
+
+	// Navigation
+	if keyMatches(key, api.AppConfig.Keybinds.Navigation.Up) {
+		return lyricsUp(m), nil
+	}
+
+	if keyMatches(key, api.AppConfig.Keybinds.Navigation.Down) {
+		return lyricsDown(m), nil
+	}
+
+	return m, nil
 }
 
 func playlistsMenu(key string, m model) (model, tea.Cmd) {

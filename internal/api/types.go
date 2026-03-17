@@ -41,6 +41,9 @@ type SubsonicResponse struct {
 				URL string `json:"url"`
 			} `json:"share"`
 		} `json:"shares"`
+		LyricsList struct {
+			StructuredLyrics []StructuredLyrics `json:"structuredLyrics"`
+		} `json:"lyricsList"`
 	} `json:"subsonic-response"`
 }
 
@@ -108,6 +111,16 @@ type Song struct {
 type Playlist struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
+}
+
+type LyricLine struct {
+	Start int    `json:"start"`
+	Value string `json:"value"`
+}
+
+type StructuredLyrics struct {
+	Synced bool        `json:"synced"`
+	Lines  []LyricLine `json:"line"`
 }
 
 // Helper: Unmarshal Song for sanitization
