@@ -95,11 +95,11 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	// NAVIGATION KEYBINDS
 	if keyMatches(key, api.AppConfig.Keybinds.Navigation.Up) {
-		return navigateUp(m), nil
+		return navigateUp(m, 1), nil
 	}
 
 	if keyMatches(key, api.AppConfig.Keybinds.Navigation.Down) {
-		return navigateDown(m)
+		return navigateDown(m, 1)
 	}
 
 	if keyMatches(key, api.AppConfig.Keybinds.Navigation.Bottom) {
@@ -112,6 +112,14 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	if keyMatches(key, api.AppConfig.Keybinds.Navigation.PlayShuffled) {
 		return playShuffled(m)
+	}
+
+	if keyMatches(key, api.AppConfig.Keybinds.Navigation.ScrollUp) {
+		return navigateUp(m, (m.height-17)/2), nil
+	}
+
+	if keyMatches(key, api.AppConfig.Keybinds.Navigation.ScrollDown) {
+		return navigateDown(m, (m.height-17)/2)
 	}
 
 	// SEARCH KEYBINDS
@@ -519,14 +527,24 @@ func navigateBottom(m model) (model, tea.Cmd) {
 	return loadMore(m)
 }
 
-func navigateUp(m model) model {
-	if m.focus == focusMain && m.cursorMain > 0 {
-		m.cursorMain--
+func navigateUp(m model, steps int) model {
+	switch m.focus {
+	case focusMain:
+		m.cursorMain -= steps
+		if m.cursorMain < 0 {
+			m.cursorMain = 0
+		}
 		if m.cursorMain < m.mainOffset {
 			m.mainOffset = m.cursorMain
 		}
-	} else if m.focus == focusSidebar && m.cursorSide > 0 {
-		m.cursorSide--
+	case focusSidebar:
+		m.cursorSide -= steps
+		if m.cursorSide < 0 {
+			m.cursorSide = 0
+		}
+		if m.cursorSide < m.sideOffset {
+			m.sideOffset = m.cursorSide
+		}
 		if m.cursorSide < m.sideOffset {
 			m.sideOffset = m.cursorSide
 		}
@@ -535,7 +553,7 @@ func navigateUp(m model) model {
 	return m
 }
 
-func navigateDown(m model) (model, tea.Cmd) {
+func navigateDown(m model, steps int) (model, tea.Cmd) {
 	listLen := 0
 	if m.viewMode == viewQueue {
 		listLen = len(m.queue)
@@ -549,15 +567,23 @@ func navigateDown(m model) (model, tea.Cmd) {
 
 	albumOffset := len(albumTypes)
 	if m.focus == focusMain && m.cursorMain < listLen-1 {
-		m.cursorMain++
+		m.cursorMain += steps
+
+		if m.cursorMain > listLen-1 {
+			m.cursorMain = listLen - 1
+		}
 
 		// Height - Search(3) - Footer(6) - Margins(4) - TableHeader(2) = 17
 		visibleRows := m.height - 17
 		if m.cursorMain >= m.mainOffset+visibleRows {
-			m.mainOffset++
+			m.mainOffset = m.cursorMain - visibleRows + 1
 		}
 	} else if m.focus == focusSidebar && m.cursorSide < len(m.playlists)+albumOffset-1 { // + because of the Album offset
-		m.cursorSide++
+		m.cursorSide += steps
+
+		if m.cursorSide > len(m.playlists)+albumOffset-1 {
+			m.cursorSide = len(m.playlists) + albumOffset - 1
+		}
 
 		headerHeight := 1
 
@@ -577,7 +603,7 @@ func navigateDown(m model) (model, tea.Cmd) {
 		}
 
 		if m.cursorSide >= m.sideOffset+visibleRows {
-			m.sideOffset++
+			m.sideOffset = m.cursorSide - visibleRows + 1
 		}
 	}
 

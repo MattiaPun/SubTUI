@@ -65,7 +65,9 @@ max_rating = 0 # Exclude songs with a rating less than or equal to this number (
   top            = ['gg']
   bottom         = ['G']
   select         = ['enter']
-  play_shuffled = ['alt+enter']
+  play_shuffled  = ['alt+enter']
+  scroll_up      = ['ctrl+u']
+  scroll_down    = ['ctrl+d']
 
   [keybinds.search]
   focus_search = ['/']
