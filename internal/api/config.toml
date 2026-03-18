@@ -7,7 +7,7 @@ mouse_support         = false
 [theme]
 display_album_art  = true
 # Format: ['Light Color', 'Dark Color']
-subtle             = ['#D9DCCF', '#6B6B6BFF'] 
+subtle             = ['#D9DCCF', '#6B6B6BFF']
 highlight          = ['#874BFD', '#7D56F4']
 special            = ['#43BF6D', '#73F59F']
 filtered           = ['#A9A9A9', '#555555']
@@ -65,7 +65,7 @@ max_rating = 0 # Exclude songs with a rating less than or equal to this number (
   top            = ['gg']
   bottom         = ['G']
   select         = ['enter']
-  play_shuffeled = ['alt+enter']
+  play_shuffled = ['alt+enter']
 
   [keybinds.search]
   focus_search = ['/']

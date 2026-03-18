@@ -111,7 +111,7 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	if keyMatches(key, api.AppConfig.Keybinds.Navigation.PlayShuffled) {
-		return playShuffeled(m)
+		return playShuffled(m)
 	}
 
 	// SEARCH KEYBINDS
@@ -386,7 +386,7 @@ func enter(m model) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func playShuffeled(m model) (tea.Model, tea.Cmd) {
+func playShuffled(m model) (tea.Model, tea.Cmd) {
 	switch m.focus {
 	case focusMain:
 		if m.displayMode == displayAlbums && m.cursorMain < len(m.albums) && (m.albums[m.cursorMain]).ID != "" {

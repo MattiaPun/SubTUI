@@ -136,7 +136,7 @@ type NavigationKeybinds struct {
 	Top          []string `toml:"top"`
 	Bottom       []string `toml:"bottom"`
 	Select       []string `toml:"select"`
-	PlayShuffled []string `toml:"play_shuffeled"`
+	PlayShuffled []string `toml:"play_shuffled"`
 }
 
 type SearchKeybinds struct {
