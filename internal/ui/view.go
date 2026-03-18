@@ -1254,11 +1254,26 @@ func truncate(s string, width int) string {
 		return ""
 	}
 
-	if len(s) > width {
-		return s[:width-1] + "…"
+	stringWidth := runewidth.StringWidth(s)
+	if stringWidth <= width {
+		return s
 	}
 
-	return s
+	currentWidth := 0
+	result := ""
+
+	for _, r := range s {
+		w := runewidth.RuneWidth(r)
+
+		if currentWidth+w+1 > width { // +1 for ellipsis
+			break
+		}
+
+		result += string(r)
+		currentWidth += w
+	}
+
+	return result + "…"
 }
 
 // Helper: Cut of string OR add padding to get specified width
