@@ -796,7 +796,7 @@ func mediaPlayerSideSongContent(m model, width int, height int) string {
 	var disc string
 	var track string
 
-	if m.queueIndex > len(m.queue) {
+	if len(m.queue) == 0 || m.queueIndex >= len(m.queue) {
 		return " No song playing"
 	}
 
