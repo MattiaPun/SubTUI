@@ -25,6 +25,10 @@
             buildInputs = [ pkgs.mpv ];
 
             ldflags = [ "-s" "-w" ];
+            
+            postInstall = ''
+              mv $out/bin/SubTUI $out/bin/subtui
+            '';
 
             meta = with lib; {
               description = "A lightweight Subsonic TUI music player with scrobbling and mpv backend";
