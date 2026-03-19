@@ -137,8 +137,8 @@ type NavigationKeybinds struct {
 	Bottom       []string `toml:"bottom"`
 	Select       []string `toml:"select"`
 	PlayShuffled []string `toml:"play_shuffled"`
-	ScrollUp     []string `toml:"scroll_up"`
-	ScrollDown   []string `toml:"scroll_down"`
+	GoHalfPageUp     []string `toml:"go_half_page_up"`
+	GoHalfPageDown   []string `toml:"go_half_page_down"`
 }
 
 type SearchKeybinds struct {

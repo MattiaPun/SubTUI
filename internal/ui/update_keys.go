@@ -114,11 +114,11 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return playShuffled(m)
 	}
 
-	if keyMatches(key, api.AppConfig.Keybinds.Navigation.ScrollUp) {
+	if keyMatches(key, api.AppConfig.Keybinds.Navigation.GoHalfPageUp) {
 		return navigateUp(m, (m.height-17)/2), nil
 	}
 
-	if keyMatches(key, api.AppConfig.Keybinds.Navigation.ScrollDown) {
+	if keyMatches(key, api.AppConfig.Keybinds.Navigation.GoHalfPageDown) {
 		return navigateDown(m, (m.height-17)/2)
 	}
 

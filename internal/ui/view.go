@@ -1109,6 +1109,8 @@ func helpViewContent() string {
 		line(keys(api.AppConfig.Keybinds.Navigation.Bottom), "Go to bottom"),
 		line(keys(api.AppConfig.Keybinds.Navigation.Select), "Select"),
 		line(keys(api.AppConfig.Keybinds.Navigation.PlayShuffled), "Start shuffled"),
+		line(keys(api.AppConfig.Keybinds.Navigation.GoHalfPageUp), "Go half page up"),
+		line(keys(api.AppConfig.Keybinds.Navigation.GoHalfPageDown), "Go half page down"),
 	)
 
 	searchKeybinds := section("SEARCH",
