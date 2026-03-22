@@ -347,9 +347,21 @@ func enter(m model) (tea.Model, tea.Cmd) {
 				if len(m.albums) > 0 {
 					selectedAlbum := m.albums[m.cursorMain]
 					m.loading = true
+
+					// Save state
 					m.displayModePrev = m.displayMode
+					m.albumsPrev = m.albums
+					m.cursorMainPrev = m.cursorMain
+					m.mainOffsetPrev = m.mainOffset
+
+					// New state
 					m.displayMode = displaySongs
 					m.songs = nil
+					m.cursorMain = 0
+					m.mainOffset = 0
+					m.pageOffset = 0
+					m.pageHasMore = true
+					m.lastSearchQuery = ""
 
 					return m, getAlbumSongs(selectedAlbum.ID, false)
 				}
@@ -359,9 +371,21 @@ func enter(m model) (tea.Model, tea.Cmd) {
 				if len(m.artists) > 0 {
 					selectedArtist := m.artists[m.cursorMain]
 					m.loading = true
+
+					// Save state
 					m.displayModePrev = m.displayMode
+					m.artistsPrev = m.artists
+					m.cursorMainPrev = m.cursorMain
+					m.mainOffsetPrev = m.mainOffset
+
+					// New state
 					m.displayMode = displayAlbums
 					m.albums = nil
+					m.cursorMain = 0
+					m.mainOffset = 0
+					m.pageOffset = 0
+					m.pageHasMore = true
+					m.lastSearchQuery = ""
 
 					return m, getArtistAlbums(selectedArtist.ID)
 				}
@@ -453,9 +477,33 @@ func goBack(m model) (tea.Model, tea.Cmd) {
 		return toggleQueue(m), nil
 	}
 
+	// Swap display modes
 	tempDisplay := m.displayMode
 	m.displayMode = m.displayModePrev
 	m.displayModePrev = tempDisplay
+
+	// Swap attributes
+	tempSongs := m.songs
+	m.songs = m.songsPrev
+	m.songsPrev = tempSongs
+
+	tempAlbums := m.albums
+	m.albums = m.albumsPrev
+	m.albumsPrev = tempAlbums
+
+	tempArtists := m.artists
+	m.artists = m.artistsPrev
+	m.artistsPrev = tempArtists
+
+	// Swap offsets
+	tempMainOffset := m.mainOffset
+	m.mainOffset = m.mainOffsetPrev
+	m.mainOffsetPrev = tempMainOffset
+
+	// Swap cursors
+	tempCursorMain := m.cursorMain
+	m.cursorMain = m.cursorMainPrev
+	m.cursorMainPrev = tempCursorMain
 
 	m.viewMode = viewList
 
@@ -635,13 +683,20 @@ func displayAlbumFromSelected(m model) (tea.Model, tea.Cmd) {
 
 	// Reset model
 	m.loading = true
-	m.mainOffset = 0
-	m.cursorMain = 0
-	m.lastSearchQuery = ""
 
-	m.viewMode = viewList
+	// Save state
 	m.displayModePrev = m.displayMode
+	m.songsPrev = m.songs
+	m.cursorMainPrev = m.cursorMain
+	m.mainOffsetPrev = m.mainOffset
+
+	// Set new state
+	m.viewMode = viewList
 	m.displayMode = displaySongs
+	m.songs = nil
+	m.cursorMain = 0
+	m.mainOffset = 0
+	m.lastSearchQuery = ""
 
 	return m, getAlbumSongs(id, false)
 }
@@ -679,13 +734,23 @@ func displayArtistFromSelected(m model) (tea.Model, tea.Cmd) {
 
 	// Reset model
 	m.loading = true
-	m.mainOffset = 0
-	m.cursorMain = 0
-	m.lastSearchQuery = ""
 
-	m.viewMode = viewList
+	// Save state
 	m.displayModePrev = m.displayMode
+	m.songsPrev = m.songs
+	m.albumsPrev = m.albums
+	m.mainOffsetPrev = m.mainOffset
+	m.cursorMainPrev = m.cursorMain
+	m.mainOffsetPrev = m.mainOffset
+
+	// New state
+	m.viewMode = viewList
 	m.displayMode = displayAlbums
+	m.songs = nil
+	m.albums = nil
+	m.cursorMain = 0
+	m.mainOffset = 0
+	m.lastSearchQuery = ""
 
 	return m, getArtistAlbums(id)
 }

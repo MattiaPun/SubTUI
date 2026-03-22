@@ -17,18 +17,23 @@ var albumTypes = []string{"All", "Random", "Favorites", "Recently Added", "Recen
 type model struct {
 	textInput    textinput.Model
 	songs        []api.Song
+	songsPrev    []api.Song
 	albums       []api.Album
+	albumsPrev   []api.Album
 	artists      []api.Artist
+	artistsPrev  []api.Artist
 	playlists    []api.Playlist
 	playerStatus player.PlayerStatus
 
 	// Navigation State
-	focus       int
-	cursorMain  int
-	cursorSide  int
-	sideOffset  int
-	cursorPopup int
-	mainOffset  int
+	focus          int
+	cursorMain     int
+	cursorMainPrev int
+	cursorSide     int
+	sideOffset     int
+	cursorPopup    int
+	mainOffset     int
+	mainOffsetPrev int
 
 	// Window Dimensions
 	width  int
