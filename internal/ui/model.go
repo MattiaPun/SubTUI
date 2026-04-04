@@ -95,9 +95,16 @@ type model struct {
 	lastClickTime time.Time
 	lastClickId   string
 
-	// Lyrics
-	songLyrics      []api.StructuredLyrics
-	songLinesOffset int
+	// Lyrics sidebar state
+	lyricsVisible      bool             // whether the lyrics panel is shown
+	lyricsLoading      bool             // true while a fetch is in flight
+	lyricsResult       api.LyricsResult // the fetched lyrics
+	lyricsSongID       string           // the song ID for which lyrics are loaded
+	lyricsScrollOff    int              // current scroll offset (line index) for the viewport
+	lyricsFocused      bool             // true when keyboard focus is inside the lyrics panel
+	lyricsError        string           // non-empty if the last fetch failed
+	lyricsCurrentLine  int              // index of the currently active line (synced mode)
+	lyricsManualScroll bool             // true if the user has manually scrolled; suppresses auto-scroll
 }
 
 type HelpModel struct {
@@ -154,10 +161,6 @@ type coverArtMsg struct {
 
 type createShareMsg struct {
 	url string
-}
-
-type getLyricsMsg struct {
-	result []api.StructuredLyrics
 }
 
 type errMsg struct {

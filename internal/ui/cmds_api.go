@@ -222,12 +222,11 @@ func createMediaShareCmd(ID string) tea.Cmd {
 func getLyricsCmd(ID string) tea.Cmd {
 	return func() tea.Msg {
 		if ID != "" {
-			result, err := api.SubsonicGetLyrics(ID)
+			_, err := api.SubsonicGetLyrics(ID)
 
 			if err != nil {
 				return errMsg{err}
 			}
-			return getLyricsMsg{result}
 		}
 
 		return nil

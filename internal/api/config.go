@@ -22,11 +22,12 @@ var defaultServerConfig []byte
 var AppServerConfig ServerConfig
 
 type Config struct {
-	App      App      `toml:"app"`
-	Theme    Theme    `toml:"theme" comment:"Format: ['Light color', 'Dark color']"`
-	Filters  Filters  `toml:"filters"`
-	Keybinds Keybinds `toml:"keybinds"`
-	Columns  Columns  `toml:"columns"`
+	App      App          `toml:"app"`
+	Theme    Theme        `toml:"theme" comment:"Format: ['Light color', 'Dark color']"`
+	Filters  Filters      `toml:"filters"`
+	Keybinds Keybinds     `toml:"keybinds"`
+	Columns  Columns      `toml:"columns"`
+	Lyrics   LyricsConfig `toml:"lyrics"`
 }
 
 type ServerConfig struct {
@@ -193,6 +194,13 @@ type FavoriteKeybinds struct {
 type OtherKeybinds struct {
 	ToggleNotifications []string `toml:"toggle_notifications"`
 	CreateShareLink     []string `toml:"create_share_link"`
+}
+
+type LyricsConfig struct {
+	Enabled    bool   `toml:"enabled"`
+	PanelWidth int    `toml:"panel_width"`
+	Toggle     string `toml:"toggle"`
+	AutoScroll bool   `toml:"auto_scroll"`
 }
 
 func createDefaultConfig(path string, content []byte, label string, permissions os.FileMode) error {

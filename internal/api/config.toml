@@ -116,3 +116,13 @@ max_rating = 0 # Exclude songs with a rating less than or equal to this number (
   [keybinds.other]
   toggle_notifications = ['s']
   create_share_link    = ['ctrl+s']
+
+[lyrics]
+# Toggle the lyrics sidebar
+enabled = true
+# Width of the lyrics panel in characters
+panel_width = 36
+# Keybind to toggle the lyrics sidebar
+toggle = "L"
+# If true, auto-scroll to the current synced line during playback
+auto_scroll = true

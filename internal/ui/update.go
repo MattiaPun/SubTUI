@@ -55,8 +55,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case createShareMsg:
 		return m.handleCreateShare(msg)
 
-	case getLyricsMsg:
-		return m.handleLyrics(msg)
+	case LyricsLoadedMsg:
+		return m.handleLyricsLoaded(msg)
+
+	case LyricsErrorMsg:
+		return m.handleLyricsError(msg)
 
 	case playQueueResultMsg:
 		return m.handlePlayQueueResult(msg)

@@ -93,12 +93,59 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return quit(m, msg)
 	}
 
+	if api.AppConfig.Lyrics.Enabled && key == api.AppConfig.Lyrics.Toggle {
+		m.lyricsVisible = !m.lyricsVisible
+
+		if !m.lyricsVisible {
+			// If we were focused on lyrics, move focus back to song
+			if m.focus == focusLyrics {
+				m.focus = focusSong
+			}
+			m.lyricsFocused = false
+			return m, nil
+		}
+
+		if len(m.queue) == 0 || m.queueIndex < 0 || m.queueIndex >= len(m.queue) {
+			m.lyricsLoading = false
+			m.lyricsResult = api.LyricsResult{}
+			m.lyricsError = "Play a song to see lyrics."
+			m.lyricsSongID = ""
+			return m, nil
+		}
+
+		currentSong := m.queue[m.queueIndex]
+		if m.lyricsSongID != currentSong.ID || (m.lyricsResult.Plain == "" && len(m.lyricsResult.Structured) == 0) {
+			m.lyricsLoading = true
+			m.lyricsError = ""
+			m.lyricsScrollOff = 0
+			m.lyricsCurrentLine = 0
+			m.lyricsManualScroll = false
+			return m, fetchLyricsCmd(currentSong.ID, currentSong.Artist, currentSong.Title)
+		}
+
+		return m, nil
+	}
+
 	// NAVIGATION KEYBINDS
 	if keyMatches(key, api.AppConfig.Keybinds.Navigation.Up) {
+		if m.lyricsVisible && m.lyricsFocused {
+			if m.lyricsScrollOff > 0 {
+				m.lyricsScrollOff--
+			}
+			m.lyricsManualScroll = true
+			return m, nil
+		}
+
 		return navigateUp(m, 1), nil
 	}
 
 	if keyMatches(key, api.AppConfig.Keybinds.Navigation.Down) {
+		if m.lyricsVisible && m.lyricsFocused {
+			m.lyricsScrollOff++
+			m.lyricsManualScroll = true
+			return m, nil
+		}
+
 		return navigateDown(m, 1)
 	}
 
@@ -290,11 +337,16 @@ func focusSearchBar(m model) model {
 }
 
 func cycleFocus(m model, forward bool) model {
-	// Cycles Focus: Search -> Sidebar -> Main -> Song -> Search
+	// Cycles Focus: Search -> Sidebar -> Main -> Song -> [Lyrics] -> Search
+	maxFocus := 4
+	if m.lyricsVisible {
+		maxFocus = 5
+	}
+
 	if forward {
-		m.focus = (m.focus + 1) % 4
+		m.focus = (m.focus + 1) % maxFocus
 	} else {
-		m.focus = (((m.focus-1)%4 + 4) % 4)
+		m.focus = (((m.focus - 1) % maxFocus) + maxFocus) % maxFocus
 	}
 
 	if m.focus == focusSearch {
@@ -302,6 +354,8 @@ func cycleFocus(m model, forward bool) model {
 	} else {
 		m.textInput.Blur()
 	}
+
+	m.lyricsFocused = m.focus == focusLyrics
 
 	return m
 }
@@ -1217,22 +1271,6 @@ func toggleNotifications(m model) model {
 	return m
 }
 
-func lyricsUp(m model) model {
-	if m.songLinesOffset > 0 {
-		m.songLinesOffset = m.songLinesOffset - 1
-	}
-
-	return m
-}
-
-func lyricsDown(m model) model {
-	if len(m.songLyrics) > 0 && m.songLinesOffset < len(m.songLyrics[0].Lines) {
-		m.songLinesOffset = m.songLinesOffset + 1
-	}
-
-	return m
-}
-
 func (m *model) updateLoginInputs(msg tea.Msg) tea.Cmd {
 	cmds := make([]tea.Cmd, len(m.loginInputs))
 	for i := range m.loginInputs {
@@ -1470,6 +1508,14 @@ func playerMenu(m model, msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, nil
+}
+
+func lyricsUp(m model) model {
+	return m
+}
+
+func lyricsDown(m model) model {
+	return m
 }
 
 func playlistsMenu(key string, m model) (model, tea.Cmd) {

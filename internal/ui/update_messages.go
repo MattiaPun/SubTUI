@@ -257,6 +257,13 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 	if m.playerStatus.Path == "" || m.playerStatus.Path == "<nil>" || len(m.queue) == 0 {
 		m.queue = []api.Song{}
 		m.lastPlayedSongPath = ""
+		m.lyricsLoading = false
+		m.lyricsResult = api.LyricsResult{}
+		m.lyricsSongID = ""
+		m.lyricsError = ""
+		m.lyricsScrollOff = 0
+		m.lyricsCurrentLine = 0
+		m.lyricsManualScroll = false
 
 		// Clear MRPIS
 		if m.dbusInstance != nil {
@@ -266,12 +273,6 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 		// Clear album art
 		if api.AppConfig.Theme.DisplayAlbumArt {
 			m.coverArt = nil
-		}
-
-		// Clear lyrics
-		m.songLinesOffset = 0
-		if len(m.songLyrics) > 0 {
-			m.songLyrics[0].Lines = []api.LyricLine{}
 		}
 
 		cmds = append(cmds, tea.SetWindowTitle("SubTUI"))
@@ -341,8 +342,14 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 		}
 
 		// Lyrics Update/reset
-		cmds = append(cmds, getLyricsCmd(currentSong.ID))
-		m.songLinesOffset = 0
+		if m.lyricsVisible {
+			m.lyricsLoading = true
+			m.lyricsError = ""
+			m.lyricsScrollOff = 0
+			m.lyricsCurrentLine = 0
+			m.lyricsManualScroll = false
+			cmds = append(cmds, fetchLyricsCmd(currentSong.ID, currentSong.Artist, currentSong.Title))
+		}
 
 		windowTitle := fmt.Sprintf("%s - %s", metadata.Title, metadata.Artist)
 		cmds = append(cmds, tea.SetWindowTitle(windowTitle)) // Update windows title
@@ -363,6 +370,68 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 				m.scrobbled = true
 
 				go api.SubsonicScrobble(currentSong.ID, true)
+			}
+		}
+	}
+
+	if len(m.lyricsResult.Structured) > 0 {
+		chosen := m.lyricsResult.Structured[0]
+		for _, s := range m.lyricsResult.Structured {
+			if s.Synced {
+				chosen = s
+				break
+			}
+		}
+
+		if chosen.Synced && len(chosen.Lines) > 0 {
+			currentMs := int(m.playerStatus.Current * 1000)
+			currentLine := 0
+			for i, line := range chosen.Lines {
+				if line.Start <= currentMs {
+					currentLine = i
+				} else {
+					break
+				}
+			}
+			m.lyricsCurrentLine = currentLine
+
+			if api.AppConfig.Lyrics.AutoScroll && m.lyricsVisible && !m.lyricsManualScroll {
+				offset := currentLine - 2
+				if offset < 0 {
+					offset = 0
+				}
+				m.lyricsScrollOff = offset
+			}
+		}
+	} else if m.lyricsResult.Plain != "" {
+		if api.AppConfig.Lyrics.AutoScroll && m.lyricsVisible && !m.lyricsManualScroll {
+			lines := strings.Split(m.lyricsResult.Plain, "\n")
+			totalLines := len(lines)
+			if totalLines > 0 && m.playerStatus.Duration > 0 {
+				ratio := m.playerStatus.Current / m.playerStatus.Duration
+				if ratio < 0 {
+					ratio = 0
+				} else if ratio > 1 {
+					ratio = 1
+				}
+
+				// Max lines visible in UI height (approx)
+				visibleLines := m.height - 3
+				if totalLines > visibleLines {
+					// We want to scroll from 0 at ratio=0, up to (totalLines - visibleLines) at ratio=1
+					// Wait, the user specifically requested:
+					// "during the first half of the song, the most lyrics should be displayed from the top,
+					// during the second half, the most lyrics should be displayed from the bottom."
+					// So if ratio < 0.5 we can just show top (0 offset)
+					// if ratio >= 0.5 we can just show bottom.
+					if ratio < 0.5 {
+						m.lyricsScrollOff = 0
+					} else {
+						m.lyricsScrollOff = totalLines - visibleLines
+					}
+				} else {
+					m.lyricsScrollOff = 0
+				}
 			}
 		}
 	}
@@ -491,8 +560,29 @@ func (m model) handleCreateShare(msg createShareMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m model) handleLyrics(msg getLyricsMsg) (tea.Model, tea.Cmd) {
-	m.songLyrics = msg.result
+func (m model) handleLyricsLoaded(msg LyricsLoadedMsg) (tea.Model, tea.Cmd) {
+	if len(m.queue) > 0 && m.queueIndex >= 0 && m.queueIndex < len(m.queue) {
+		if msg.SongID != m.queue[m.queueIndex].ID {
+			return m, nil
+		}
+	}
+
+	m.lyricsResult = msg.Result
+	m.lyricsSongID = msg.SongID
+	m.lyricsScrollOff = 0
+	m.lyricsCurrentLine = 0
+	m.lyricsLoading = false
+	m.lyricsError = ""
+	m.lyricsManualScroll = false
+
+	return m, nil
+}
+
+func (m model) handleLyricsError(msg LyricsErrorMsg) (tea.Model, tea.Cmd) {
+	m.lyricsLoading = false
+	m.lyricsError = "Could not load lyrics."
+	log.Printf("Lyrics fetch error: %v", msg.Err)
+
 	return m, nil
 }
 

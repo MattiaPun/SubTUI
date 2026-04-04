@@ -120,6 +120,24 @@ func (m model) BaseView() string {
 		mainBorder = activeBorderStyle
 	}
 
+	lyricsPanelWidth := int(float64(m.width) * 0.25) // dynamic width like sidebar
+	if lyricsPanelWidth < 30 {
+		lyricsPanelWidth = 30 // set a reasonable minimum
+	}
+	if api.AppConfig.Lyrics.PanelWidth > 0 {
+		lyricsPanelWidth = api.AppConfig.Lyrics.PanelWidth
+	}
+
+	showLyrics := m.lyricsVisible && m.width >= 90
+	contentWidth := mainWidth
+	if showLyrics {
+		// subtract the width used by the lyrics panel (including its 2 units border and 2 units padding)
+		contentWidth = mainWidth - lyricsPanelWidth - 4
+		if contentWidth < 0 {
+			contentWidth = 0
+		}
+	}
+
 	mainContent := ""
 	if m.loading &&
 		(m.displayMode == displaySongs && len(m.songs) == 0 ||
@@ -127,20 +145,32 @@ func (m model) BaseView() string {
 			m.displayMode == displayArtist && len(m.artists) == 0) {
 		mainContent = "\n  Searching your library..."
 	} else if m.displayMode == displaySongs {
-		mainContent = mainSongsContent(m, mainWidth, mainHeight)
+		mainContent = mainSongsContent(m, contentWidth, mainHeight)
 	} else if m.displayMode == displayAlbums {
-		mainContent = mainAlbumsContent(m, mainWidth, mainHeight)
+		mainContent = mainAlbumsContent(m, contentWidth, mainHeight)
 	} else if m.displayMode == displayArtist {
-		mainContent = mainArtistContent(m, mainWidth, mainHeight)
+		mainContent = mainArtistContent(m, contentWidth, mainHeight)
 	}
 
-	rightPane := mainBorder.
-		Width(mainWidth).
+	centerContent := mainBorder.
+		Width(contentWidth).
 		Height(mainHeight).
 		Render(mainContent)
 
-	// Join sidebar and main view
-	centerView := lipgloss.JoinHorizontal(lipgloss.Top, leftPane, rightPane)
+	centerView := lipgloss.JoinHorizontal(lipgloss.Top, leftPane, centerContent)
+	if showLyrics {
+		lyricsContent := m.renderLyricsPanel(mainHeight, lyricsPanelWidth)
+		lyricsStyle := lyricsBorderInactive
+		if m.lyricsFocused {
+			lyricsStyle = lyricsBorderFocused
+		}
+		lyricsPanel := lyricsStyle.
+			Width(lyricsPanelWidth).
+			Height(mainHeight).
+			Padding(0, 1).
+			Render(lyricsContent)
+		centerView = lipgloss.JoinHorizontal(lipgloss.Top, leftPane, centerContent, lyricsPanel)
+	}
 
 	// FOOTER
 	footerView := m.buildFooterBorder().
@@ -743,6 +773,10 @@ func mediaPlayerContent(m model) string {
 	)
 }
 
+func mediaPlayerLyricsContent(m model, width int, height int) string {
+	return m.renderLyricsPanel(height, width)
+}
+
 // Generate the media player side (manager)
 func mediaPlayerSideContent(m model, width int, height int) string {
 	var mediaPlayerSongContent string
@@ -945,92 +979,6 @@ func mediaPlayerSideCoverArtContent(m model) string {
 }
 
 // Generate the media player lyrics
-func mediaPlayerLyricsContent(m model, width int, height int) string {
-	var visibleLines []string
-	var finalLyrics string
-	var currentLineId int
-
-	if len(m.songLyrics) != 0 && len(m.songLyrics[0].Lines) > 0 { // Lyrics found
-		if m.songLyrics[0].Synced { // Display synced lyrics
-			// Pre-process all lines with styles
-			var renderedLines []string
-
-			lines := m.songLyrics[0].Lines
-			totalLines := len(lines)
-			currentTime := int(m.playerStatus.Current)
-
-			for i, line := range lines {
-				var lineType int
-				var style lipgloss.Style
-
-				lineStartTime := line.Start / 1000
-
-				if lineStartTime <= currentTime {
-					if i+1 < totalLines {
-						nextLineStartTime := lines[i+1].Start / 1000
-						if currentTime < nextLineStartTime {
-							lineType = currentLine
-							currentLineId = i
-						} else {
-							lineType = pastLine
-						}
-					} else {
-						lineType = currentLine
-						currentLineId = i
-					}
-				} else {
-					lineType = futureLine
-				}
-
-				// Apply styling
-				switch lineType {
-				case pastLine:
-					style = filteredStyle
-				case currentLine:
-					style = specialStyle.Bold(true)
-				case futureLine:
-					style = lipgloss.NewStyle()
-				}
-
-				renderedLines = append(renderedLines, style.Render(truncate(line.Value, width)))
-			}
-
-			middleLineHeight := height / 2 // Display using current line in middle
-
-			for i := 0; i < height; i++ {
-				// Calculate which line should go in this slot
-				actualIdx := currentLineId - middleLineHeight + i
-
-				if actualIdx >= 0 && actualIdx < len(renderedLines) {
-					visibleLines = append(visibleLines, renderedLines[actualIdx]) // Print line if in bounds
-				} else {
-					visibleLines = append(visibleLines, "") // Print empty line if out of bounds
-				}
-			}
-
-		} else { // Display unsynced lyrics
-
-			visibleLines = append(visibleLines, "") // padding
-			visibleLines = append(visibleLines, "") // padding
-
-			for i := m.songLinesOffset; i < len(m.songLyrics[0].Lines); i++ {
-				if i < height-2 { // 1 padding top | 1 padding bottom
-					visibleLines = append(visibleLines, truncate(m.songLyrics[0].Lines[i].Value, width))
-				}
-			}
-		}
-	} else { // No lyrics found
-		visibleLines = append(visibleLines, subtleStyle.Render("\nNo lyrics found for this song"))
-	}
-
-	finalLyrics = strings.Join(visibleLines, "\n")
-
-	return borderStyle.
-		Width(width).
-		Height(height).
-		Align(lipgloss.Center).
-		Render(finalLyrics)
-}
 
 // Generate the media player progress bar
 func mediaPlayerProgressBarContent(m model, width int) string {
@@ -1176,6 +1124,7 @@ func helpViewContent() string {
 	otherKeybinds := section("OTHERS",
 		line(keys(api.AppConfig.Keybinds.Other.ToggleNotifications), "Toggle notifications"),
 		line(keys(api.AppConfig.Keybinds.Other.CreateShareLink), "Create share link"),
+		line(api.AppConfig.Lyrics.Toggle, "Toggle lyrics sidebar"),
 	)
 
 	columnLeft := lipgloss.JoinVertical(lipgloss.Left,
@@ -1607,4 +1556,65 @@ func calculateCoverArtSize(m model) (int, int) {
 	}
 
 	return width, height
+}
+
+// Render the lyrics sidebar panel
+func (m model) renderLyricsPanel(height, width int) string {
+	title := specialStyle.Render("Lyrics")
+	subtitleStyle := subtleStyle
+	activeLineStyle := lyricsActiveLineStyle
+	inactiveLineStyle := subtleStyle
+
+	// Inner width to wrap or truncate text to avoid making the box overflow
+	innerWidth := width - 2 // -2 for padding
+	if innerWidth < 0 {
+		innerWidth = 0
+	}
+	wrapStyle := lipgloss.NewStyle().Width(innerWidth)
+
+	if m.lyricsLoading {
+		return lipgloss.JoinVertical(lipgloss.Left, title, wrapStyle.Render(subtitleStyle.Render("Loading…")))
+	}
+
+	if m.lyricsError != "" {
+		return lipgloss.JoinVertical(lipgloss.Left, title, wrapStyle.Render(subtitleStyle.Render(m.lyricsError)))
+	}
+
+	var lines []string
+	if len(m.lyricsResult.Structured) > 0 {
+		chosen := m.lyricsResult.Structured[0]
+		for _, s := range m.lyricsResult.Structured {
+			if s.Synced {
+				chosen = s
+				break
+			}
+		}
+		subtitle := wrapStyle.Render(subtitleStyle.Render(chosen.DisplayArtist + " — " + chosen.DisplayTitle))
+		lines = append(lines, subtitle, "")
+		for i, line := range chosen.Lines {
+			style := inactiveLineStyle
+			if chosen.Synced && i == m.lyricsCurrentLine {
+				style = activeLineStyle
+			}
+			lines = append(lines, style.Render(truncate(line.Value, innerWidth)))
+		}
+	} else if m.lyricsResult.Plain != "" {
+		for _, l := range strings.Split(m.lyricsResult.Plain, "\n") {
+			lines = append(lines, inactiveLineStyle.Render(truncate(l, innerWidth)))
+		}
+	} else {
+		lines = append(lines, wrapStyle.Render(subtitleStyle.Render("No lyrics available")))
+	}
+
+	maxVisible := height - 3
+	visibleLines := lines
+	if len(lines) > maxVisible {
+		start := m.lyricsScrollOff
+		if start+maxVisible > len(lines) {
+			start = len(lines) - maxVisible
+		}
+		visibleLines = lines[start : start+maxVisible]
+	}
+
+	return lipgloss.JoinVertical(lipgloss.Left, append([]string{title}, visibleLines...)...)
 }

@@ -28,6 +28,10 @@ var (
 	cursorStyle          lipgloss.Style
 	cursorFocusedStyle   lipgloss.Style
 	currentPlaySongStyle lipgloss.Style
+
+	lyricsActiveLineStyle lipgloss.Style
+	lyricsBorderFocused   lipgloss.Style
+	lyricsBorderInactive  lipgloss.Style
 )
 
 func checkColors(colors []string) lipgloss.AdaptiveColor {
@@ -108,4 +112,19 @@ func InitStyles() {
 	// Current playing song
 	currentPlaySongStyle = lipgloss.NewStyle().
 		Foreground(Theme.Special)
+
+	// Lyrics active line
+	lyricsActiveLineStyle = lipgloss.NewStyle().
+		Foreground(Theme.Highlight).
+		Bold(true)
+
+	// Lyrics border focused
+	lyricsBorderFocused = lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(Theme.Highlight)
+
+	// Lyrics border inactive
+	lyricsBorderInactive = lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(Theme.Subtle)
 }

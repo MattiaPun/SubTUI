@@ -5,6 +5,7 @@ const (
 	focusSidebar
 	focusMain
 	focusSong
+	focusLyrics
 	focusPlaylist = 90
 )
 

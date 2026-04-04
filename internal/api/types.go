@@ -41,6 +41,11 @@ type SubsonicResponse struct {
 				URL string `json:"url"`
 			} `json:"share"`
 		} `json:"shares"`
+		Lyrics struct {
+			Artist string `json:"artist"`
+			Title  string `json:"title"`
+			Value  string `json:"value"`
+		} `json:"lyrics"`
 		LyricsList struct {
 			StructuredLyrics []StructuredLyrics `json:"structuredLyrics"`
 		} `json:"lyricsList"`
@@ -49,7 +54,6 @@ type SubsonicResponse struct {
 
 type SubsonicUser struct {
 	Username string `json:"username"`
-	Email    string `json:"email"`
 }
 
 type SubsonicError struct {
@@ -57,15 +61,15 @@ type SubsonicError struct {
 	Message string `json:"message"`
 }
 
-type PlayQueue struct {
-	Current string `json:"current"`
-	Entries []Song `json:"entry"`
-}
-
 type SearchResult3 struct {
 	Artists []Artist `json:"artist"`
 	Albums  []Album  `json:"album"`
 	Songs   []Song   `json:"song"`
+}
+
+type PlayQueue struct {
+	Current string `json:"current"`
+	Entries []Song `json:"entry"`
 }
 
 type Artist struct {
@@ -119,8 +123,12 @@ type LyricLine struct {
 }
 
 type StructuredLyrics struct {
-	Synced bool        `json:"synced"`
-	Lines  []LyricLine `json:"line"`
+	DisplayArtist string      `json:"displayArtist"`
+	DisplayTitle  string      `json:"displayTitle"`
+	Lang          string      `json:"lang"`
+	Synced        bool        `json:"synced"`
+	Offset        int         `json:"offset"`
+	Lines         []LyricLine `json:"line"`
 }
 
 // Helper: Unmarshal Song for sanitization
