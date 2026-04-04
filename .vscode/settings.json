@@ -1,0 +1,6 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "awk": true,
+        "go": true
+    }
+}

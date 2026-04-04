@@ -87,6 +87,8 @@ func parseSyncedLyrics(synced string) []LyricLine {
 				// The unit in `LyricLine` `Start` is milliseconds.
 				if len(secParts[1]) == 2 {
 					ms *= 10
+				} else if len(secParts[1]) == 1 {
+					ms *= 100
 				}
 			}
 			lines = append(lines, LyricLine{

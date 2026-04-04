@@ -89,7 +89,7 @@ func (m model) BaseView() string {
 		mainHeight = 0
 	}
 
-	sidebarWidth := int(float64(m.width) * 0.25)
+	sidebarWidth := int(float64(m.width) * 0.20)
 	mainWidth := m.width - sidebarWidth - 4
 
 	// HEADER
@@ -120,9 +120,17 @@ func (m model) BaseView() string {
 		mainBorder = activeBorderStyle
 	}
 
-	lyricsPanelWidth := int(float64(m.width) * 0.25) // dynamic width like sidebar
-	if lyricsPanelWidth < 30 {
-		lyricsPanelWidth = 30 // set a reasonable minimum
+	idealWidth := calculateIdealLyricsWidth(m)
+	lyricsPanelWidth := idealWidth
+	if lyricsPanelWidth < 35 {
+		lyricsPanelWidth = 35 // set a narrower minimum
+	}
+	lyricsMaxWidth := int(float64(m.width) * 0.4)
+	if lyricsMaxWidth < 35 {
+		lyricsMaxWidth = 35
+	}
+	if lyricsPanelWidth > lyricsMaxWidth {
+		lyricsPanelWidth = lyricsMaxWidth
 	}
 	if api.AppConfig.Lyrics.PanelWidth > 0 {
 		lyricsPanelWidth = api.AppConfig.Lyrics.PanelWidth
@@ -131,8 +139,13 @@ func (m model) BaseView() string {
 	showLyrics := m.lyricsVisible && m.width >= 90
 	contentWidth := mainWidth
 	if showLyrics {
-		// subtract the width used by the lyrics panel (including its 2 units border and 2 units padding)
-		contentWidth = mainWidth - lyricsPanelWidth - 4
+		// When lyrics visible, make the lyrics panel narrower than the center content
+		availableForBoth := m.width - sidebarWidth - 6
+		lyricsPanelWidth = int(float64(availableForBoth) * 0.4)
+		if lyricsPanelWidth < 35 {
+			lyricsPanelWidth = 35
+		}
+		contentWidth = availableForBoth - lyricsPanelWidth
 		if contentWidth < 0 {
 			contentWidth = 0
 		}
@@ -774,7 +787,16 @@ func mediaPlayerContent(m model) string {
 }
 
 func mediaPlayerLyricsContent(m model, width int, height int) string {
-	return m.renderLyricsPanel(height, width)
+	lyricsContent := m.renderLyricsPanel(height, width)
+	lyricsStyle := lyricsBorderInactive
+	if m.lyricsFocused {
+		lyricsStyle = lyricsBorderFocused
+	}
+	return lyricsStyle.
+		Width(width).
+		Height(height).
+		Padding(0, 1).
+		Render(lyricsContent)
 }
 
 // Generate the media player side (manager)
@@ -1596,25 +1618,65 @@ func (m model) renderLyricsPanel(height, width int) string {
 			if chosen.Synced && i == m.lyricsCurrentLine {
 				style = activeLineStyle
 			}
-			lines = append(lines, style.Render(truncate(line.Value, innerWidth)))
+			lines = append(lines, wrapStyle.Render(style.Render(line.Value)))
 		}
 	} else if m.lyricsResult.Plain != "" {
 		for _, l := range strings.Split(m.lyricsResult.Plain, "\n") {
-			lines = append(lines, inactiveLineStyle.Render(truncate(l, innerWidth)))
+			lines = append(lines, wrapStyle.Render(inactiveLineStyle.Render(l)))
 		}
 	} else {
 		lines = append(lines, wrapStyle.Render(subtitleStyle.Render("No lyrics available")))
 	}
 
-	maxVisible := height - 3
-	visibleLines := lines
-	if len(lines) > maxVisible {
-		start := m.lyricsScrollOff
-		if start+maxVisible > len(lines) {
-			start = len(lines) - maxVisible
+	maxVisibleHeight := height - 3
+	var visibleLines []string
+	currentHeight := 0
+
+	start := m.lyricsScrollOff
+	if start >= len(lines) {
+		start = len(lines) - 1
+	}
+	if start < 0 {
+		start = 0
+	}
+
+	for i := start; i < len(lines); i++ {
+		renderedLine := lines[i]
+		lineHeight := lipgloss.Height(renderedLine)
+
+		// If adding this line would exceed available height, stop
+		if currentHeight+lineHeight > maxVisibleHeight && currentHeight > 0 {
+			break
 		}
-		visibleLines = lines[start : start+maxVisible]
+
+		visibleLines = append(visibleLines, renderedLine)
+		currentHeight += lineHeight
 	}
 
 	return lipgloss.JoinVertical(lipgloss.Left, append([]string{title}, visibleLines...)...)
+}
+
+func calculateIdealLyricsWidth(m model) int {
+	maxLen := 45
+	if len(m.lyricsResult.Structured) > 0 {
+		chosen := m.lyricsResult.Structured[0]
+		for _, s := range m.lyricsResult.Structured {
+			if s.Synced {
+				chosen = s
+				break
+			}
+		}
+		for _, l := range chosen.Lines {
+			if len(l.Value) > maxLen {
+				maxLen = len(l.Value)
+			}
+		}
+	} else if m.lyricsResult.Plain != "" {
+		for _, l := range strings.Split(m.lyricsResult.Plain, "\n") {
+			if len(l) > maxLen {
+				maxLen = len(l)
+			}
+		}
+	}
+	return maxLen + 4 // add a bit of padding
 }

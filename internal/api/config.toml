@@ -121,7 +121,7 @@ max_rating = 0 # Exclude songs with a rating less than or equal to this number (
 # Toggle the lyrics sidebar
 enabled = true
 # Width of the lyrics panel in characters
-panel_width = 36
+panel_width = 45
 # Keybind to toggle the lyrics sidebar
 toggle = "L"
 # If true, auto-scroll to the current synced line during playback

@@ -141,7 +141,11 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	if keyMatches(key, api.AppConfig.Keybinds.Navigation.Down) {
 		if m.lyricsVisible && m.lyricsFocused {
-			m.lyricsScrollOff++
+			// Allow scrolling in default and media player modes
+			maxScroll := calculateMaxLyricsScroll(m)
+			if m.lyricsScrollOff < maxScroll {
+				m.lyricsScrollOff++
+			}
 			m.lyricsManualScroll = true
 			return m, nil
 		}
@@ -1511,10 +1515,21 @@ func playerMenu(m model, msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func lyricsUp(m model) model {
+	if m.lyricsVisible && m.lyricsScrollOff > 0 {
+		m.lyricsScrollOff--
+		m.lyricsManualScroll = true
+	}
 	return m
 }
 
 func lyricsDown(m model) model {
+	if m.lyricsVisible {
+		maxScroll := calculateMaxLyricsScroll(m)
+		if m.lyricsScrollOff < maxScroll {
+			m.lyricsScrollOff++
+			m.lyricsManualScroll = true
+		}
+	}
 	return m
 }
 
@@ -1673,4 +1688,40 @@ func cursorInBounds(m model) bool {
 	}
 
 	return false
+}
+
+// calculateMaxLyricsScroll calculates the maximum scroll offset for lyrics
+// to prevent scrolling past where all lines fit in the visible area
+func calculateMaxLyricsScroll(m model) int {
+	// Estimate visible height
+	visibleHeight := m.height - 8
+	if visibleHeight < 1 {
+		visibleHeight = 1
+	}
+
+	// Count total lines
+	var totalLineCount int
+	if len(m.lyricsResult.Structured) > 0 {
+		chosen := m.lyricsResult.Structured[0]
+		for _, s := range m.lyricsResult.Structured {
+			if s.Synced {
+				chosen = s
+				break
+			}
+		}
+		totalLineCount = len(chosen.Lines) + 2 // +2 for title and padding
+	} else if m.lyricsResult.Plain != "" {
+		lines := strings.Split(m.lyricsResult.Plain, "\n")
+		totalLineCount = len(lines) + 2 // +2 for title and padding
+	} else {
+		return 0
+	}
+
+	// Max scroll is when the last line reaches the bottom
+	maxScroll := totalLineCount - (visibleHeight / 2)
+	if maxScroll < 0 {
+		maxScroll = 0
+	}
+
+	return maxScroll
 }

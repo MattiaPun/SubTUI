@@ -396,11 +396,32 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 			m.lyricsCurrentLine = currentLine
 
 			if api.AppConfig.Lyrics.AutoScroll && m.lyricsVisible && !m.lyricsManualScroll {
-				offset := currentLine - 2
-				if offset < 0 {
-					offset = 0
+				// Estimate visible lines (conservative estimate)
+				maxVis := (m.height - 8) / 2
+				if maxVis < 1 {
+					maxVis = 1
 				}
-				m.lyricsScrollOff = offset
+
+				// Total lines in lyrics
+				totalLines := len(chosen.Lines)
+
+				// If we have more lines to show after current line, center current line
+				// Otherwise, scroll so last lines are at the bottom
+				linesAfter := totalLines - currentLine
+				if linesAfter > maxVis {
+					offset := currentLine - (maxVis / 2)
+					if offset < 0 {
+						offset = 0
+					}
+					m.lyricsScrollOff = offset
+				} else {
+					// Scroll so the last line is visible at bottom
+					offset := totalLines - maxVis
+					if offset < 0 {
+						offset = 0
+					}
+					m.lyricsScrollOff = offset
+				}
 			}
 		}
 	} else if m.lyricsResult.Plain != "" {

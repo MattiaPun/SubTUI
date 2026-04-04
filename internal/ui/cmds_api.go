@@ -219,16 +219,17 @@ func createMediaShareCmd(ID string) tea.Cmd {
 	}
 }
 
-func getLyricsCmd(ID string) tea.Cmd {
-	return func() tea.Msg {
-		if ID != "" {
-			_, err := api.SubsonicGetLyrics(ID)
 
-			if err != nil {
-				return errMsg{err}
-			}
-		}
-
-		return nil
-	}
-}
+// func getLyricsCmd(ID string) tea.Cmd {
+// 	return func() tea.Msg {
+// 		if ID != "" {
+// 			_, err := api.SubsonicGetLyrics(ID)
+//
+// 			if err != nil {
+// 				return errMsg{err}
+// 			}
+// 		}
+//
+// 		return nil
+// 	}
+// }
