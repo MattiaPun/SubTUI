@@ -259,7 +259,7 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	if keyMatches(key, api.AppConfig.Keybinds.Media.ToggleMediaPlayer) {
-		return mediaToggleMediaPlayer(m), nil
+		return mediaToggleMediaPlayer(m)
 	}
 
 	// QUEUE KEYBINDS
@@ -1058,12 +1058,14 @@ func mediaSeekForward(m model) model {
 	return m
 }
 
-func mediaToggleMediaPlayer(m model) model {
+func mediaToggleMediaPlayer(m model) (model, tea.Cmd) {
+	var cmd tea.Cmd
 	if m.focus != focusSearch {
 		if m.showMediaPlayer {
 			m.showMediaPlayer = false
 		} else {
 			m.showMediaPlayer = true
+			cmd = fetchMediaViewLyricsCmd(m)
 		}
 
 		if m.coverArt != nil {
@@ -1076,7 +1078,7 @@ func mediaToggleMediaPlayer(m model) model {
 		}
 	}
 
-	return m
+	return m, cmd
 }
 
 func mediaSeekRewind(m model) model {
@@ -1464,7 +1466,7 @@ func playerMenu(m model, msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	// NAVIGATION KEYBINDS
 	if keyMatches(key, api.AppConfig.Keybinds.Media.ToggleMediaPlayer) || keyMatches(key, api.AppConfig.Keybinds.Global.Back) {
-		return mediaToggleMediaPlayer(m), nil
+		return mediaToggleMediaPlayer(m)
 	}
 
 	// MEDIA KEYBINDS

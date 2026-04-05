@@ -97,7 +97,18 @@ func main() {
 
 	// Start TUI
 	if _, err := p.Run(); err != nil {
+		if player.IsInitialized() {
+			api.AppConfig.App.Volume = int(player.GetVolume())
+			if saveErr := api.SaveConfig(filepath.Join(api.ConfigDir, "config.toml"), api.AppConfig, 0644); saveErr != nil {
+				log.Printf("Warning: failed to save volume on exit: %v", saveErr)
+			}
+		}
 		fmt.Println("Error while running program:", err)
 		os.Exit(1)
+	} else if player.IsInitialized() {
+		api.AppConfig.App.Volume = int(player.GetVolume())
+		if saveErr := api.SaveConfig(filepath.Join(api.ConfigDir, "config.toml"), api.AppConfig, 0644); saveErr != nil {
+			log.Printf("Warning: failed to save volume on exit: %v", saveErr)
+		}
 	}
 }

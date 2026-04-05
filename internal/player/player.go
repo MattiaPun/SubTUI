@@ -85,6 +85,10 @@ func ShutdownPlayer() {
 	}
 }
 
+func IsInitialized() bool {
+	return mpvClient != nil
+}
+
 func PlaySong(songID string, startPaused bool) error {
 	log.Printf("[Player] PlaySong called for ID: %s (Paused: %v)", songID, startPaused)
 

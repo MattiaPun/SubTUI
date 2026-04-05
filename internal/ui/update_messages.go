@@ -225,6 +225,10 @@ func (m model) handleLoginResult(msg loginResultMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	if api.AppConfig.App.Volume >= 0 && api.AppConfig.App.Volume <= 100 {
+		player.SetVolume(api.AppConfig.App.Volume)
+	}
+
 	m.viewMode = viewList
 	m.focus = focusSearch
 	m.loginErr = ""
@@ -260,6 +264,7 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 		m.lyricsLoading = false
 		m.lyricsResult = api.LyricsResult{}
 		m.lyricsSongID = ""
+		m.lyricsPrefetchSongID = ""
 		m.lyricsError = ""
 		m.lyricsScrollOff = 0
 		m.lyricsCurrentLine = 0
@@ -299,6 +304,7 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 		currentSong := m.queue[m.queueIndex]
 		m.lastPlayedSongPath = m.playerStatus.Path // Update previous song
 		m.scrobbled = false                        // Reset scrobble status
+		m.lyricsPrefetchSongID = ""
 
 		// Setup metadata
 		metadata := integration.Metadata{
@@ -341,14 +347,27 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, getCoverArtCmd(currentSong.ID))
 		}
 
-		// Lyrics Update/reset
-		if m.lyricsVisible {
-			m.lyricsLoading = true
-			m.lyricsError = ""
-			m.lyricsScrollOff = 0
-			m.lyricsCurrentLine = 0
-			m.lyricsManualScroll = false
-			cmds = append(cmds, fetchLyricsCmd(currentSong.ID, currentSong.Artist, currentSong.Title))
+		// Lyrics Update/reset. Media player mode should always hydrate lyrics in the background,
+		// but the panel still only renders when lyricsVisible is true.
+		if m.showMediaPlayer || m.lyricsVisible {
+			if m.lyricsSongID != currentSong.ID {
+				m.lyricsLoading = true
+				m.lyricsError = ""
+				m.lyricsScrollOff = 0
+				m.lyricsCurrentLine = 0
+				m.lyricsManualScroll = false
+				cmds = append(cmds, fetchLyricsCmd(currentSong.ID, currentSong.Artist, currentSong.Title))
+			}
+
+			if m.showMediaPlayer && m.queueIndex+1 < len(m.queue) {
+				nextSong := m.queue[m.queueIndex+1]
+				if m.lyricsPrefetchSongID != nextSong.ID {
+					if _, ok := api.GetCachedLyrics(nextSong.ID); !ok {
+						m.lyricsPrefetchSongID = nextSong.ID
+						cmds = append(cmds, fetchLyricsCmd(nextSong.ID, nextSong.Artist, nextSong.Title))
+					}
+				}
+			}
 		}
 
 		windowTitle := fmt.Sprintf("%s - %s", metadata.Title, metadata.Artist)
@@ -584,6 +603,10 @@ func (m model) handleCreateShare(msg createShareMsg) (tea.Model, tea.Cmd) {
 func (m model) handleLyricsLoaded(msg LyricsLoadedMsg) (tea.Model, tea.Cmd) {
 	if len(m.queue) > 0 && m.queueIndex >= 0 && m.queueIndex < len(m.queue) {
 		if msg.SongID != m.queue[m.queueIndex].ID {
+			if msg.SongID == m.lyricsPrefetchSongID {
+				m.lyricsPrefetchSongID = ""
+			}
+
 			return m, nil
 		}
 	}
@@ -595,13 +618,26 @@ func (m model) handleLyricsLoaded(msg LyricsLoadedMsg) (tea.Model, tea.Cmd) {
 	m.lyricsLoading = false
 	m.lyricsError = ""
 	m.lyricsManualScroll = false
+	m.lyricsPrefetchSongID = ""
 
 	return m, nil
 }
 
 func (m model) handleLyricsError(msg LyricsErrorMsg) (tea.Model, tea.Cmd) {
+	if len(m.queue) > 0 && m.queueIndex >= 0 && m.queueIndex < len(m.queue) {
+		currentSongID := m.queue[m.queueIndex].ID
+		if msg.SongID != currentSongID {
+			if msg.SongID == m.lyricsPrefetchSongID {
+				m.lyricsPrefetchSongID = ""
+			}
+
+			return m, nil
+		}
+	}
+
 	m.lyricsLoading = false
 	m.lyricsError = "Could not load lyrics."
+	m.lyricsPrefetchSongID = ""
 	log.Printf("Lyrics fetch error: %v", msg.Err)
 
 	return m, nil

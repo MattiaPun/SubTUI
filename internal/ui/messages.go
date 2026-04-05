@@ -17,5 +17,6 @@ type LyricsLoadedMsg struct {
 
 // LyricsErrorMsg is sent when the lyrics fetch fails.
 type LyricsErrorMsg struct {
-	Err error
+	Err    error
+	SongID string
 }

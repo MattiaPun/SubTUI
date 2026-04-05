@@ -802,21 +802,30 @@ func mediaPlayerLyricsContent(m model, width int, height int) string {
 // Generate the media player side (manager)
 func mediaPlayerSideContent(m model, width int, height int) string {
 	var mediaPlayerSongContent string
+	var mediaPlayerStatusContent string
 	var mediaPlayerQueueContent string
 	var mediaPlayerCoverArtContent string
 
 	var mediaInfoHeight int
+	var statusHeight int
 	var queueHeight int
 	var coverArtHeight int
 
 	queueHeight = 7      // STATIC: 5 SONGS + TITLE + HEADER
-	mediaInfoHeight = 12 // STATIC: 9 ATTIRBUTES + STATUS + 2 PADDINGS
+	mediaInfoHeight = 11 // STATIC: 9 ATTRIBUTES + 2 BORDERS
+	statusHeight = 3     // 1 LINE + 2 BORDERS
 
 	// Media Info
 	mediaPlayerSongContent = borderStyle.
 		Width(width).
 		Height(mediaInfoHeight).
 		Render(mediaPlayerSideSongContent(m, width, mediaInfoHeight))
+
+	// Media Status
+	mediaPlayerStatusContent = borderStyle.
+		Width(width).
+		Height(statusHeight).
+		Render(mediaPlayerSideStatusContent(m, width, statusHeight))
 
 	// Queue
 	mediaPlayerQueueContent = borderStyle.
@@ -825,7 +834,7 @@ func mediaPlayerSideContent(m model, width int, height int) string {
 		Render(mediaPlayerSideQueueContent(m, width))
 
 	// Cover Art
-	coverArtHeight = height - lipgloss.Height(mediaPlayerSongContent) - lipgloss.Height(mediaPlayerQueueContent) + 1
+	coverArtHeight = height - lipgloss.Height(mediaPlayerSongContent) - lipgloss.Height(mediaPlayerStatusContent) - lipgloss.Height(mediaPlayerQueueContent) + 1
 	mediaPlayerCoverArtContent = borderStyle.
 		Width(width).
 		Height(coverArtHeight).
@@ -837,6 +846,7 @@ func mediaPlayerSideContent(m model, width int, height int) string {
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
 		mediaPlayerSongContent,
+		mediaPlayerStatusContent,
 		mediaPlayerQueueContent,
 		mediaPlayerCoverArtContent,
 	)
@@ -845,7 +855,6 @@ func mediaPlayerSideContent(m model, width int, height int) string {
 // Generate the media player song information
 func mediaPlayerSideSongContent(m model, width int, height int) string {
 	var songSection string
-	var statusSection string
 
 	// Song Section
 	var rating string
@@ -889,7 +898,6 @@ func mediaPlayerSideSongContent(m model, width int, height int) string {
 		title,
 		album,
 		artist,
-		"", // Padding
 		disc,
 		track,
 		year,
@@ -898,66 +906,45 @@ func mediaPlayerSideSongContent(m model, width int, height int) string {
 		rating,
 	)
 
-	// Status Section
+	return borderStyle.
+		Width(width).
+		Height(height).
+		Render(songSection)
+}
+
+// Generate the media player status information
+func mediaPlayerSideStatusContent(m model, width int, height int) string {
 	var notificationStatus string
 	var loopStatus string
 	var volumeStatus string
 
-	var notificationGap int
-	var loopGap int
-	var volumeGap int
-
 	if !m.notify {
-		notificationStatus = "[Silent]"
+		notificationStatus = "Notifications: Silent"
+	} else {
+		notificationStatus = "Notifications: On"
 	}
 
 	switch m.loopMode {
 	case LoopNone:
-		loopStatus = ""
+		loopStatus = "Loop: Off"
 	case LoopAll:
-		loopStatus = "[Loop all]"
+		loopStatus = "Loop: All"
 	case LoopOne:
-		loopStatus = "[Loop one]"
+		loopStatus = "Loop: One"
 	}
 
 	if m.playerStatus.Volume != 100 {
-		volumeStatus = fmt.Sprintf("[%v%%]", m.playerStatus.Volume)
+		volumeStatus = fmt.Sprintf("Volume: %v%%", m.playerStatus.Volume)
+	} else {
+		volumeStatus = "Volume: 100%"
 	}
 
-	statusAvailableWidth := width - 4 // 2x 2 padding
-	statusWidth := statusAvailableWidth / 3
+	statusLine := fmt.Sprintf("%s | %s | %s", notificationStatus, loopStatus, volumeStatus)
 
-	notificationGap = (statusWidth - len(notificationStatus)) / 2
-	loopGap = (statusWidth - len(loopStatus)) / 2
-	volumeGap = (statusWidth - len(volumeStatus)) / 2
-
-	if notificationGap < 0 {
-		notificationGap = 0
-	}
-	if loopGap < 0 {
-		loopGap = 0
-	}
-	if volumeGap < 0 {
-		volumeGap = 0
-	}
-
-	statusSection = lipgloss.JoinHorizontal(lipgloss.Center,
-		strings.Repeat(" ", notificationGap)+notificationStatus+strings.Repeat(" ", notificationGap),
-		strings.Repeat(" ", loopGap)+loopStatus+strings.Repeat(" ", loopGap),
-		strings.Repeat(" ", volumeGap)+volumeStatus+strings.Repeat(" ", volumeGap),
-	)
-
-	// Combining
-	verticalGap := height - strings.Count(songSection, "\n") - 3 // 3: Padding
-	if verticalGap < 0 {
-		verticalGap = 0
-	}
-
-	return lipgloss.JoinVertical(lipgloss.Left,
-		songSection,
-		strings.Repeat("\n", verticalGap),
-		statusSection,
-	)
+	return borderStyle.
+		Width(width).
+		Height(height).
+		Render(lipgloss.NewStyle().Align(lipgloss.Center).Render(statusLine))
 }
 
 // Generate the media player queue
