@@ -93,7 +93,13 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return quit(m, msg)
 	}
 
-	if api.AppConfig.Lyrics.Enabled && key == api.AppConfig.Lyrics.Toggle {
+	// Hard-enforce loop on uppercase L to avoid collisions with lyrics toggle.
+	if key == "L" {
+		return mediaToggleLoop(m), nil
+	}
+
+	// Hard-enforce lyrics sidebar toggle on lowercase l.
+	if api.AppConfig.Lyrics.Enabled && key == "l" {
 		m.lyricsVisible = !m.lyricsVisible
 
 		if !m.lyricsVisible {
@@ -1449,6 +1455,11 @@ func playerMenu(m model, msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// GLOBAL KEYBINDS
 	if keyMatches(key, api.AppConfig.Keybinds.Global.Quit) {
 		return quit(m, msg)
+	}
+
+	// Keep media-player mode consistent with normal mode.
+	if key == "L" {
+		return mediaToggleLoop(m), nil
 	}
 
 	// NAVIGATION KEYBINDS

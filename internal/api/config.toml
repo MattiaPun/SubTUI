@@ -123,6 +123,6 @@ enabled = true
 # Width of the lyrics panel in characters
 panel_width = 45
 # Keybind to toggle the lyrics sidebar
-toggle = "L"
+toggle = "l"
 # If true, auto-scroll to the current synced line during playback
 auto_scroll = true
