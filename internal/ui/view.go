@@ -813,7 +813,7 @@ func mediaPlayerSideContent(m model, width int, height int) string {
 
 	queueHeight = 7      // STATIC: 5 SONGS + TITLE + HEADER
 	mediaInfoHeight = 11 // STATIC: 9 ATTRIBUTES + 2 BORDERS
-	statusHeight = 3     // 1 LINE + 2 BORDERS
+	statusHeight = 1     // compact single-line status content
 
 	// Media Info
 	mediaPlayerSongContent = borderStyle.
@@ -906,10 +906,7 @@ func mediaPlayerSideSongContent(m model, width int, height int) string {
 		rating,
 	)
 
-	return borderStyle.
-		Width(width).
-		Height(height).
-		Render(songSection)
+	return songSection
 }
 
 // Generate the media player status information
@@ -919,9 +916,9 @@ func mediaPlayerSideStatusContent(m model, width int, height int) string {
 	var volumeStatus string
 
 	if !m.notify {
-		notificationStatus = "Notifications: Silent"
+		notificationStatus = " Notifications: Silent"
 	} else {
-		notificationStatus = "Notifications: On"
+		notificationStatus = " Notifications: On"
 	}
 
 	switch m.loopMode {
@@ -939,12 +936,13 @@ func mediaPlayerSideStatusContent(m model, width int, height int) string {
 		volumeStatus = "Volume: 100%"
 	}
 
-	statusLine := fmt.Sprintf("%s | %s | %s", notificationStatus, loopStatus, volumeStatus)
+	notificationLabel := highlightStyle.Bold(true).Render("Notifications")
+	loopLabel := highlightStyle.Bold(true).Render("Loop")
+	volumeLabel := highlightStyle.Bold(true).Render("Volume")
 
-	return borderStyle.
-		Width(width).
-		Height(height).
-		Render(lipgloss.NewStyle().Align(lipgloss.Center).Render(statusLine))
+	statusLine := fmt.Sprintf(" %s: %s | %s: %s | %s: %s", notificationLabel, strings.TrimPrefix(notificationStatus, "Notifications: "), loopLabel, strings.TrimPrefix(loopStatus, "Loop: "), volumeLabel, strings.TrimPrefix(volumeStatus, "Volume: "))
+
+	return lipgloss.NewStyle().Align(lipgloss.Center).Render(statusLine)
 }
 
 // Generate the media player queue
