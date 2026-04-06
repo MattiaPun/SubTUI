@@ -916,9 +916,9 @@ func mediaPlayerSideStatusContent(m model, width int, height int) string {
 	var volumeStatus string
 
 	if !m.notify {
-		notificationStatus = " Notifications: Silent"
+		notificationStatus = "Silent"
 	} else {
-		notificationStatus = " Notifications: On"
+		notificationStatus = "On"
 	}
 
 	switch m.loopMode {
@@ -940,7 +940,7 @@ func mediaPlayerSideStatusContent(m model, width int, height int) string {
 	loopLabel := highlightStyle.Bold(true).Render("Loop")
 	volumeLabel := highlightStyle.Bold(true).Render("Volume")
 
-	statusLine := fmt.Sprintf(" %s: %s | %s: %s | %s: %s", notificationLabel, strings.TrimPrefix(notificationStatus, "Notifications: "), loopLabel, strings.TrimPrefix(loopStatus, "Loop: "), volumeLabel, strings.TrimPrefix(volumeStatus, "Volume: "))
+	statusLine := fmt.Sprintf(" %s: %s | %s: %s | %s: %s", notificationLabel, notificationStatus, loopLabel, strings.TrimPrefix(loopStatus, "Loop: "), volumeLabel, strings.TrimPrefix(volumeStatus, "Volume: "))
 
 	return lipgloss.NewStyle().Align(lipgloss.Center).Render(statusLine)
 }
