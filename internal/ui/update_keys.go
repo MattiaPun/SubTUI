@@ -528,9 +528,14 @@ func navigateBottom(m model) (model, tea.Cmd) {
 	case focusMain:
 
 		listLen := 0
+
 		switch m.displayMode {
 		case displaySongs:
-			listLen = len(m.songs)
+			if m.viewMode == viewQueue {
+				listLen = len(m.queue)
+			} else {
+				listLen = len(m.songs)
+			}
 		case displayAlbums:
 			listLen = len(m.albums)
 		case displayArtist:
