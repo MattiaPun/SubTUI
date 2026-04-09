@@ -836,12 +836,108 @@ func mediaPlayerContent(m model) string {
 }
 
 func mediaPlayerLyricsContent(m model, width int, height int) string {
-	lyricsContent := m.renderLyricsPanel(height, width)
-	return lyricsBorderInactive.
+	var visibleLines []string
+	var allLines []string
+
+	if m.lyricsLoading {
+		allLines = append(allLines, subtleStyle.Render("Loading..."))
+	} else if m.lyricsError != "" {
+		allLines = append(allLines, subtleStyle.Render(m.lyricsError))
+	} else if len(m.lyricsResult.Structured) > 0 {
+		chosen := m.lyricsResult.Structured[0]
+		for _, s := range m.lyricsResult.Structured {
+			if s.Synced {
+				chosen = s
+				break
+			}
+		}
+
+		for i, line := range chosen.Lines {
+			style := lipgloss.NewStyle()
+			if chosen.Synced {
+				switch {
+				case i < m.lyricsCurrentLine:
+					style = filteredStyle
+				case i == m.lyricsCurrentLine:
+					style = specialStyle.Bold(true)
+				}
+			}
+
+			allLines = append(allLines, style.Render(truncate(line.Value, width)))
+		}
+	} else if m.lyricsResult.Plain != "" {
+		for _, line := range m.lyricsPlainLines {
+			allLines = append(allLines, subtleStyle.Render(truncate(line, width)))
+		}
+	} else {
+		allLines = append(allLines, subtleStyle.Render("No lyrics found for this song"))
+	}
+
+	start := m.lyricsScrollOff
+
+	var hasSynced bool
+	if len(m.lyricsResult.Structured) > 0 {
+		for _, s := range m.lyricsResult.Structured {
+			if s.Synced {
+				hasSynced = true
+				break
+			}
+		}
+	}
+
+	if hasSynced {
+		centerStart := m.lyricsCurrentLine - (height / 2)
+		if m.lyricsManualScroll {
+			// Convert global scroll offset to a center-relative delta for media view
+			// so taking manual control does not cause a viewport jump.
+			autoMaxVis := (m.height - 8) / 2
+			if autoMaxVis < 1 {
+				autoMaxVis = 1
+			}
+
+			totalLines := len(allLines)
+			autoStart := 0
+			linesAfter := totalLines - m.lyricsCurrentLine
+			if linesAfter > autoMaxVis {
+				autoStart = m.lyricsCurrentLine - (autoMaxVis / 2)
+				if autoStart < 0 {
+					autoStart = 0
+				}
+			} else {
+				autoStart = totalLines - autoMaxVis
+				if autoStart < 0 {
+					autoStart = 0
+				}
+			}
+
+			start = centerStart + (m.lyricsScrollOff - autoStart)
+		} else {
+			start = centerStart
+		}
+	} else {
+		// Unsynced/plain lyrics should keep a small top gap.
+		start -= 2
+	}
+
+	if start >= len(allLines) {
+		start = len(allLines) - 1
+	}
+
+	for i := start; i < start+height; i++ {
+		if i < 0 || i >= len(allLines) {
+			visibleLines = append(visibleLines, "")
+		} else {
+			visibleLines = append(visibleLines, allLines[i])
+		}
+	}
+
+	finalLyrics := strings.Join(visibleLines, "\n")
+
+	return borderStyle.
 		Width(width).
 		Height(height).
-		Padding(0, 1).
-		Render(lyricsContent)
+		Align(lipgloss.Center).
+		Render(finalLyrics)
 }
 
 // Generate the media player side (manager)
