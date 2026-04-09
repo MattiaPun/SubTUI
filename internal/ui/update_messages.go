@@ -397,15 +397,7 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 			m.lyricsManualScroll = false
 		}
 
-		chosen := m.lyricsResult.Structured[0]
-		for _, s := range m.lyricsResult.Structured {
-			if s.Synced {
-				chosen = s
-				break
-			}
-		}
-
-		if chosen.Synced && len(chosen.Lines) > 0 {
+		if chosen, ok := preferredStructuredLyrics(m.lyricsResult.Structured); ok && chosen.Synced && len(chosen.Lines) > 0 {
 			currentMs := int(m.playerStatus.Current * 1000)
 			currentLine := 0
 			for i, line := range chosen.Lines {
@@ -419,26 +411,8 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 
 			if api.AppConfig.Lyrics.AutoScroll && (m.lyricsVisible || m.showMediaPlayer) && !m.lyricsManualScroll {
 				maxVis := (m.height - 8) / 2
-				if maxVis < 1 {
-					maxVis = 1
-				}
-
 				totalLines := len(chosen.Lines)
-
-				linesAfter := totalLines - currentLine
-				if linesAfter > maxVis {
-					offset := currentLine - (maxVis / 2)
-					if offset < 0 {
-						offset = 0
-					}
-					m.lyricsScrollOff = offset
-				} else {
-					offset := totalLines - maxVis
-					if offset < 0 {
-						offset = 0
-					}
-					m.lyricsScrollOff = offset
-				}
+				m.lyricsScrollOff = syncedAutoScrollOffset(totalLines, currentLine, maxVis)
 			}
 		}
 	} else if m.lyricsResult.Plain != "" {

@@ -843,14 +843,7 @@ func mediaPlayerLyricsContent(m model, width int, height int) string {
 		allLines = append(allLines, subtleStyle.Render("Loading..."))
 	} else if m.lyricsError != "" {
 		allLines = append(allLines, subtleStyle.Render(m.lyricsError))
-	} else if len(m.lyricsResult.Structured) > 0 {
-		chosen := m.lyricsResult.Structured[0]
-		for _, s := range m.lyricsResult.Structured {
-			if s.Synced {
-				chosen = s
-				break
-			}
-		}
+	} else if chosen, ok := preferredStructuredLyrics(m.lyricsResult.Structured); ok {
 
 		for i, line := range chosen.Lines {
 			style := lipgloss.NewStyle()
@@ -875,40 +868,14 @@ func mediaPlayerLyricsContent(m model, width int, height int) string {
 
 	start := m.lyricsScrollOff
 
-	var hasSynced bool
-	if len(m.lyricsResult.Structured) > 0 {
-		for _, s := range m.lyricsResult.Structured {
-			if s.Synced {
-				hasSynced = true
-				break
-			}
-		}
-	}
-
-	if hasSynced {
+	if chosen, ok := preferredStructuredLyrics(m.lyricsResult.Structured); ok && chosen.Synced {
 		centerStart := m.lyricsCurrentLine - (height / 2)
 		if m.lyricsManualScroll {
 			// Convert global scroll offset to a center-relative delta for media view
 			// so taking manual control does not cause a viewport jump.
 			autoMaxVis := (m.height - 8) / 2
-			if autoMaxVis < 1 {
-				autoMaxVis = 1
-			}
-
 			totalLines := len(allLines)
-			autoStart := 0
-			linesAfter := totalLines - m.lyricsCurrentLine
-			if linesAfter > autoMaxVis {
-				autoStart = m.lyricsCurrentLine - (autoMaxVis / 2)
-				if autoStart < 0 {
-					autoStart = 0
-				}
-			} else {
-				autoStart = totalLines - autoMaxVis
-				if autoStart < 0 {
-					autoStart = 0
-				}
-			}
+			autoStart := syncedAutoScrollOffset(totalLines, m.lyricsCurrentLine, autoMaxVis)
 
 			start = centerStart + (m.lyricsScrollOff - autoStart)
 		} else {
@@ -1729,14 +1696,7 @@ func (m model) renderLyricsPanel(height, width int) string {
 	}
 
 	var lines []string
-	if len(m.lyricsResult.Structured) > 0 {
-		chosen := m.lyricsResult.Structured[0]
-		for _, s := range m.lyricsResult.Structured {
-			if s.Synced {
-				chosen = s
-				break
-			}
-		}
+	if chosen, ok := preferredStructuredLyrics(m.lyricsResult.Structured); ok {
 		subtitle := wrapStyle.Render(subtitleStyle.Render(chosen.DisplayArtist + " — " + chosen.DisplayTitle))
 		lines = append(lines, subtitle, "")
 		for i, line := range chosen.Lines {
@@ -1784,14 +1744,7 @@ func (m model) renderLyricsPanel(height, width int) string {
 
 func calculateIdealLyricsWidth(m model) int {
 	maxLen := 45
-	if len(m.lyricsResult.Structured) > 0 {
-		chosen := m.lyricsResult.Structured[0]
-		for _, s := range m.lyricsResult.Structured {
-			if s.Synced {
-				chosen = s
-				break
-			}
-		}
+	if chosen, ok := preferredStructuredLyrics(m.lyricsResult.Structured); ok {
 		for _, l := range chosen.Lines {
 			if len(l.Value) > maxLen {
 				maxLen = len(l.Value)

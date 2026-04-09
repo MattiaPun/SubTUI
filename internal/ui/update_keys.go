@@ -1750,14 +1750,7 @@ func calculateMaxLyricsScroll(m model) int {
 
 	// Count total lines
 	var totalLineCount int
-	if len(m.lyricsResult.Structured) > 0 {
-		chosen := m.lyricsResult.Structured[0]
-		for _, s := range m.lyricsResult.Structured {
-			if s.Synced {
-				chosen = s
-				break
-			}
-		}
+	if chosen, ok := preferredStructuredLyrics(m.lyricsResult.Structured); ok {
 		totalLineCount = len(chosen.Lines) + 2 // +2 for title and padding
 	} else if m.lyricsResult.Plain != "" {
 		totalLineCount = len(m.lyricsPlainLines) + 2 // +2 for title and padding
