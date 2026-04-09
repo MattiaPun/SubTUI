@@ -1760,8 +1760,7 @@ func calculateMaxLyricsScroll(m model) int {
 		}
 		totalLineCount = len(chosen.Lines) + 2 // +2 for title and padding
 	} else if m.lyricsResult.Plain != "" {
-		lines := strings.Split(m.lyricsResult.Plain, "\n")
-		totalLineCount = len(lines) + 2 // +2 for title and padding
+		totalLineCount = len(m.lyricsPlainLines) + 2 // +2 for title and padding
 	} else {
 		return 0
 	}

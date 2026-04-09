@@ -1651,7 +1651,7 @@ func (m model) renderLyricsPanel(height, width int) string {
 			lines = append(lines, wrapStyle.Render(style.Render(line.Value)))
 		}
 	} else if m.lyricsResult.Plain != "" {
-		for _, l := range strings.Split(m.lyricsResult.Plain, "\n") {
+		for _, l := range m.lyricsPlainLines {
 			lines = append(lines, wrapStyle.Render(inactiveLineStyle.Render(l)))
 		}
 	} else {
@@ -1702,7 +1702,7 @@ func calculateIdealLyricsWidth(m model) int {
 			}
 		}
 	} else if m.lyricsResult.Plain != "" {
-		for _, l := range strings.Split(m.lyricsResult.Plain, "\n") {
+		for _, l := range m.lyricsPlainLines {
 			if len(l) > maxLen {
 				maxLen = len(l)
 			}

@@ -393,6 +393,10 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 	}
 
 	if len(m.lyricsResult.Structured) > 0 {
+		if m.lyricsManualScroll && !m.lyricsScrollStopTime.IsZero() && time.Since(m.lyricsScrollStopTime) > 3*time.Second {
+			m.lyricsManualScroll = false
+		}
+
 		chosen := m.lyricsResult.Structured[0]
 		for _, s := range m.lyricsResult.Structured {
 			if s.Synced {
@@ -412,11 +416,6 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 				}
 			}
 			m.lyricsCurrentLine = currentLine
-
-			// Check if 3 seconds have passed since manual scroll stopped
-			if m.lyricsManualScroll && time.Since(m.lyricsScrollStopTime) > 3*time.Second {
-				m.lyricsManualScroll = false
-			}
 
 			if api.AppConfig.Lyrics.AutoScroll && (m.lyricsVisible || m.showMediaPlayer) && !m.lyricsManualScroll {
 				maxVis := (m.height - 8) / 2
@@ -443,14 +442,12 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 	} else if m.lyricsResult.Plain != "" {
-		// Check if 3 seconds have passed since manual scroll stopped
-		if m.lyricsManualScroll && time.Since(m.lyricsScrollStopTime) > 3*time.Second {
+		if m.lyricsManualScroll && !m.lyricsScrollStopTime.IsZero() && time.Since(m.lyricsScrollStopTime) > 3*time.Second {
 			m.lyricsManualScroll = false
 		}
 
 		if api.AppConfig.Lyrics.AutoScroll && (m.lyricsVisible || m.showMediaPlayer) && !m.lyricsManualScroll {
-			lines := strings.Split(m.lyricsResult.Plain, "\n")
-			totalLines := len(lines)
+			totalLines := len(m.lyricsPlainLines)
 			if totalLines > 0 && m.playerStatus.Duration > 0 {
 				ratio := m.playerStatus.Current / m.playerStatus.Duration
 				if ratio < 0 {
@@ -616,6 +613,10 @@ func (m model) handleLyricsLoaded(msg LyricsLoadedMsg) (tea.Model, tea.Cmd) {
 	m.lyricsLoading = false
 	m.lyricsError = ""
 	m.lyricsManualScroll = false
+	m.lyricsPlainLines = nil
+	if msg.Result.Plain != "" {
+		m.lyricsPlainLines = strings.Split(msg.Result.Plain, "\n")
+	}
 	m.lyricsPrefetchSongID = ""
 
 	return m, nil
@@ -635,6 +636,7 @@ func (m model) handleLyricsError(msg LyricsErrorMsg) (tea.Model, tea.Cmd) {
 
 	m.lyricsLoading = false
 	m.lyricsError = "Could not load lyrics."
+	m.lyricsPlainLines = nil
 	m.lyricsPrefetchSongID = ""
 	log.Printf("Lyrics fetch error: %v", msg.Err)
 

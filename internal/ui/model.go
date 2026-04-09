@@ -106,6 +106,7 @@ type model struct {
 	lyricsFocused        bool             // true when keyboard focus is inside the lyrics panel
 	lyricsError          string           // non-empty if the last fetch failed
 	lyricsCurrentLine    int              // index of the currently active line (synced mode)
+	lyricsPlainLines     []string         // cached plain lyrics lines to avoid repeated splitting
 	lyricsManualScroll   bool             // true if the user has manually scrolled; suppresses auto-scroll
 	lyricsScrollStopTime time.Time        // when manual scrolling was initiated; used for the 3-second delay
 }
