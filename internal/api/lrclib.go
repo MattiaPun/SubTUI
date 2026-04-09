@@ -36,7 +36,7 @@ func fetchLrcLib(artist, title string) (*LrcLibResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "SubTUI (https://github.com/bojti/SubTUIx)")
+	req.Header.Set("User-Agent", "SubTUI (https://github.com/MattiaPun/SubTUI)")
 
 	resp, err := client.Do(req)
 	if err != nil {

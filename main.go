@@ -34,6 +34,7 @@ func main() {
 	configPath := flag.String("c", defaultConfig, "Custom config folder path")
 	debug := flag.Bool("debug", false, "Enable debug logging to subtui.log")
 	showVersion := flag.Bool("v", false, "Print version and exit")
+	logOut := flag.Bool("log-out", false, "Clear saved authentication secrets and return to the login screen")
 	flag.Parse()
 
 	// Check for version
@@ -65,6 +66,18 @@ func main() {
 	if err := api.LoadConfig(*configPath); err != nil {
 		fmt.Printf("Fatal error loading config: %v\n", err)
 		os.Exit(1)
+	}
+
+	if *logOut {
+		api.AppServerConfig.Server.Password = ""
+		api.AppServerConfig.Server.PasswordToken = ""
+		api.AppServerConfig.Server.PasswordSalt = ""
+		api.AppServerConfig.Server.ApiKey = ""
+
+		if err := api.SaveConfig(filepath.Join(api.ConfigDir, "credentials.toml"), api.AppServerConfig, 0600); err != nil {
+			fmt.Printf("Failed to clear saved credentials: %v\n", err)
+			os.Exit(1)
+		}
 	}
 
 	// Log Startup

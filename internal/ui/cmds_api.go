@@ -20,6 +20,15 @@ func attemptLoginCmd() tea.Cmd {
 	}
 }
 
+func saveAppConfigCmd() tea.Cmd {
+	return func() tea.Msg {
+		if err := api.SaveConfig(filepath.Join(api.ConfigDir, "config.toml"), api.AppConfig, 0644); err != nil {
+			return errMsg{err: err}
+		}
+		return nil
+	}
+}
+
 func searchCmd(query string, mode int, offset int) tea.Cmd {
 	return func() tea.Msg {
 
@@ -218,7 +227,6 @@ func createMediaShareCmd(ID string) tea.Cmd {
 		return nil
 	}
 }
-
 
 // func getLyricsCmd(ID string) tea.Cmd {
 // 	return func() tea.Msg {

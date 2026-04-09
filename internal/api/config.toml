@@ -121,6 +121,8 @@ max_rating = 0 # Exclude songs with a rating less than or equal to this number (
 [lyrics]
 # Toggle the lyrics sidebar
 enabled = true
+# LRCLIB source mode: 'off', 'fallback', or 'on'
+source_mode = 'off'
 # Width of the lyrics panel in characters
 panel_width = 45
 # Keybind to toggle the lyrics sidebar

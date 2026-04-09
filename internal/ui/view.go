@@ -32,6 +32,23 @@ func (m model) View() string {
 
 	base := m.BaseView()
 
+	if m.viewMode == viewLogin && m.showLoginExtras {
+		content := loginExtrasContent(m)
+
+		styledContent := popupStyle.Render(
+			lipgloss.JoinVertical(lipgloss.Center,
+				lipgloss.NewStyle().Bold(true).Render("Extras"),
+				"",
+				content,
+			),
+		)
+
+		fg := ContentModel{Content: styledContent}
+		bg := BackgroundWrapper{RenderedView: base}
+
+		return overlay.New(fg, bg, overlay.Center, overlay.Center, 0, 0).View()
+	}
+
 	if m.showPlaylists {
 		content := addToPlaylistContent(m)
 
@@ -203,6 +220,7 @@ func (m model) BaseView() string {
 func loginView(m model) string {
 	errorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true)
 	authStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("212")).Bold(true)
+	buttonStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("81")).Bold(true)
 
 	errorDisplay := ""
 	if m.loginErr != "" {
@@ -237,12 +255,30 @@ func loginView(m model) string {
 		)
 	}
 
+	formWidth := lipgloss.Width(urlBar)
+	if w := lipgloss.Width(authMethodBar); w > formWidth {
+		formWidth = w
+	}
+	if w := lipgloss.Width(loginInputs); w > formWidth {
+		formWidth = w
+	}
+
+	extrasButton := "[ Extras ]"
+	if m.loginFocus == loginExtrasFocusIndex(m.loginType) {
+		extrasButton = buttonStyle.Underline(true).Render(extrasButton)
+	} else {
+		extrasButton = buttonStyle.Render(extrasButton)
+	}
+	extrasButton = lipgloss.NewStyle().Width(formWidth).Align(lipgloss.Center).Render(extrasButton)
+
 	form := lipgloss.JoinVertical(lipgloss.Left,
 		urlBar,
 		"", // Spacer
 		authMethodBar,
 		"", // Spacer
 		loginInputs,
+		"", // Spacer
+		extrasButton,
 	)
 
 	content := lipgloss.JoinVertical(lipgloss.Center,
@@ -251,7 +287,7 @@ func loginView(m model) string {
 		form,
 		"", // Spacer
 		errorDisplay,
-		loginHelpStyle.Render("[TAB] Next Field   [Ctrl+t] Change Auth   [ENTER] Login"),
+		loginHelpStyle.Render("[TAB] Next Field   [Ctrl+t] Change Auth   [ENTER] Login / Open Extras"),
 	)
 
 	return lipgloss.Place(
@@ -263,6 +299,19 @@ func loginView(m model) string {
 		lipgloss.WithWhitespaceChars(" "),
 		lipgloss.WithWhitespaceForeground(lipgloss.NoColor{}),
 	)
+}
+
+func loginExtrasContent(m model) string {
+	label := lipgloss.NewStyle().Bold(true).Render("LRCLIB")
+	value := lipgloss.NewStyle().Foreground(lipgloss.Color("81")).Bold(true).Render(lrcLibModeLabel(currentLrcLibMode()))
+
+	settings := lipgloss.JoinVertical(lipgloss.Left,
+		fmt.Sprintf("%s: < %s >", label, value),
+		"",
+		"[LEFT/RIGHT/ENTER] Change   [ESC] Close",
+	)
+
+	return settings
 }
 
 // Generate the search bar
@@ -788,11 +837,7 @@ func mediaPlayerContent(m model) string {
 
 func mediaPlayerLyricsContent(m model, width int, height int) string {
 	lyricsContent := m.renderLyricsPanel(height, width)
-	lyricsStyle := lyricsBorderInactive
-	if m.lyricsFocused {
-		lyricsStyle = lyricsBorderFocused
-	}
-	return lyricsStyle.
+	return lyricsBorderInactive.
 		Width(width).
 		Height(height).
 		Padding(0, 1).

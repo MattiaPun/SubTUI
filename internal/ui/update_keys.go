@@ -3,13 +3,61 @@ package ui
 import (
 	"math/rand"
 	"strings"
+	"time"
 
 	"github.com/MattiaPun/SubTUI/v2/internal/api"
 	"github.com/MattiaPun/SubTUI/v2/internal/integration"
 	"github.com/MattiaPun/SubTUI/v2/internal/player"
-	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 )
+
+func loginFieldCount(loginType int) int {
+	switch loginType {
+	case loginPasswordHashed:
+		return 4 // URL + username + token + salt
+	default:
+		return 3 // URL + username + password/API key
+	}
+}
+
+func loginExtrasFocusIndex(loginType int) int {
+	return loginFieldCount(loginType)
+}
+
+func currentLrcLibMode() string {
+	return api.NormalizeLyricsSourceMode(api.AppConfig.Lyrics.SourceMode)
+}
+
+func lrcLibModeLabel(mode string) string {
+	switch api.NormalizeLyricsSourceMode(mode) {
+	case api.LyricsSourceOn:
+		return "On"
+	case api.LyricsSourceFallback:
+		return "Fallback"
+	default:
+		return "Off"
+	}
+}
+
+func cycleLrcLibMode(forward bool) {
+	order := []string{api.LyricsSourceOff, api.LyricsSourceFallback, api.LyricsSourceOn}
+	current := currentLrcLibMode()
+	idx := 0
+	for i, v := range order {
+		if v == current {
+			idx = i
+			break
+		}
+	}
+
+	if forward {
+		idx = (idx + 1) % len(order)
+	} else {
+		idx = (idx - 1 + len(order)) % len(order)
+	}
+
+	api.AppConfig.Lyrics.SourceMode = order[idx]
+}
 
 func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
@@ -139,6 +187,7 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.lyricsScrollOff--
 			}
 			m.lyricsManualScroll = true
+			m.lyricsScrollStopTime = time.Now()
 			return m, nil
 		}
 
@@ -153,6 +202,7 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.lyricsScrollOff++
 			}
 			m.lyricsManualScroll = true
+			m.lyricsScrollStopTime = time.Now()
 			return m, nil
 		}
 
@@ -1065,6 +1115,12 @@ func mediaToggleMediaPlayer(m model) (model, tea.Cmd) {
 			m.showMediaPlayer = false
 		} else {
 			m.showMediaPlayer = true
+			// Media mode does not use sidebar focus semantics for lyrics.
+			m.lyricsFocused = false
+			if m.focus == focusLyrics {
+				m.focus = focusSong
+			}
+			m.lyricsManualScroll = false
 			cmd = fetchMediaViewLyricsCmd(m)
 		}
 
@@ -1293,8 +1349,31 @@ func (m *model) updateLoginInputs(msg tea.Msg) tea.Cmd {
 
 func login(m model, msg tea.KeyMsg) (model, tea.Cmd) {
 	key := msg.String()
+	extrasIdx := loginExtrasFocusIndex(m.loginType)
+
+	if m.showLoginExtras {
+		switch key {
+		case "esc", "backspace":
+			m.showLoginExtras = false
+			return m, nil
+		case "left":
+			cycleLrcLibMode(false)
+			return m, saveAppConfigCmd()
+		case "right", "enter":
+			cycleLrcLibMode(true)
+			return m, saveAppConfigCmd()
+		default:
+			return m, nil
+		}
+	}
+
 	switch key {
 	case "enter":
+		if m.loginFocus == extrasIdx {
+			m.showLoginExtras = true
+			return m, nil
+		}
+
 		m.loading = true
 		m.loginErr = ""
 
@@ -1361,28 +1440,11 @@ func login(m model, msg tea.KeyMsg) (model, tea.Cmd) {
 		)
 
 	case "up", "down", "tab", "shift+tab":
+		total := loginFieldCount(m.loginType) + 1 // +1 for the Extras button row
 		if key == "up" || key == "shift+tab" {
-			switch m.loginType {
-			case loginPassword:
-				m.loginFocus = ((m.loginFocus-1)%3 + 3) % 3
-
-			case loginPasswordHashed:
-				m.loginFocus = ((m.loginFocus-1)%4 + 4) % 4
-
-			case loginApi:
-				m.loginFocus = ((m.loginFocus-1)%3 + 3) % 3
-			}
+			m.loginFocus = ((m.loginFocus-1)%total + total) % total
 		} else {
-			switch m.loginType {
-			case loginPassword:
-				m.loginFocus = (m.loginFocus + 1) % 3
-
-			case loginPasswordHashed:
-				m.loginFocus = (m.loginFocus + 1) % 4
-
-			case loginApi:
-				m.loginFocus = (m.loginFocus + 1) % 3
-			}
+			m.loginFocus = (m.loginFocus + 1) % total
 		}
 
 	case "ctrl+t":
@@ -1394,47 +1456,15 @@ func login(m model, msg tea.KeyMsg) (model, tea.Cmd) {
 		m.loginInputs[3].SetValue("")
 
 		// Correct the inputs with fitting values
-		switch m.loginType {
-		case loginPassword:
-			m.loginInputs[1].Prompt = "Username: "
-			m.loginInputs[1].Placeholder = "username"
-			m.loginInputs[1].EchoMode = textinput.EchoNormal
-
-			m.loginInputs[2].Prompt = "Password: "
-			m.loginInputs[2].Placeholder = "password"
-			m.loginInputs[2].EchoMode = textinput.EchoPassword
-
-		case loginPasswordHashed:
-			m.loginInputs[1].Prompt = "Username: "
-			m.loginInputs[1].Placeholder = "username"
-			m.loginInputs[1].EchoMode = textinput.EchoNormal
-
-			m.loginInputs[2].Prompt = "Token: "
-			m.loginInputs[2].Placeholder = "md5 hash"
-			m.loginInputs[2].EchoMode = textinput.EchoNormal
-
-			m.loginInputs[3].Prompt = "Salt: "
-			m.loginInputs[3].Placeholder = "random string"
-			m.loginInputs[3].EchoMode = textinput.EchoNormal
-
-		case loginApi:
-			m.loginInputs[1].Prompt = "Username: "
-			m.loginInputs[1].Placeholder = "username"
-			m.loginInputs[1].EchoMode = textinput.EchoNormal
-
-			m.loginInputs[2].Prompt = "API Key: "
-			m.loginInputs[2].Placeholder = "api key"
-			m.loginInputs[2].EchoMode = textinput.EchoPassword
-
-			if m.loginFocus > 1 {
-				m.loginFocus = 1
-			}
+		configureLoginInputsForType(m.loginInputs, m.loginType)
+		if m.loginFocus > loginExtrasFocusIndex(m.loginType) {
+			m.loginFocus = loginExtrasFocusIndex(m.loginType)
 		}
 	}
 
 	// Focus the correct login input
-	for i := 0; i <= len(m.loginInputs)-1; i++ {
-		if i == m.loginFocus {
+	for i := 0; i < len(m.loginInputs); i++ {
+		if i == m.loginFocus && m.loginFocus < loginFieldCount(m.loginType) {
 			m.loginInputs[i].Focus()
 		} else {
 			m.loginInputs[i].Blur()
@@ -1451,6 +1481,10 @@ func playerMenu(m model, msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.showHelp = !m.showHelp
 		return m, nil
 	} else if m.showHelp {
+		if keyMatches(key, api.AppConfig.Keybinds.Global.Back) {
+			m.showHelp = false
+			return m, nil
+		}
 		return m, nil
 	}
 
@@ -1528,19 +1562,21 @@ func playerMenu(m model, msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func lyricsUp(m model) model {
-	if m.lyricsVisible && m.lyricsScrollOff > 0 {
+	if (m.lyricsVisible || m.showMediaPlayer) && m.lyricsScrollOff > 0 {
 		m.lyricsScrollOff--
 		m.lyricsManualScroll = true
+		m.lyricsScrollStopTime = time.Now()
 	}
 	return m
 }
 
 func lyricsDown(m model) model {
-	if m.lyricsVisible {
+	if m.lyricsVisible || m.showMediaPlayer {
 		maxScroll := calculateMaxLyricsScroll(m)
 		if m.lyricsScrollOff < maxScroll {
 			m.lyricsScrollOff++
 			m.lyricsManualScroll = true
+			m.lyricsScrollStopTime = time.Now()
 		}
 	}
 	return m

@@ -59,16 +59,49 @@ func GetLyricsBySongID(songID string) ([]StructuredLyrics, error) {
 }
 
 // FetchLyrics attempts to get lyrics for the given song.
-// It first tries getLyricsBySongId (OpenSubsonic), falls back to LRCLIB, and then to getLyrics.
-// Returns a LyricsResult and any error. A missing/empty result is not an error.
+// It prefers server-provided lyrics first and only falls back to LRCLIB when needed.
 func FetchLyrics(songID, artist, title string) (LyricsResult, error) {
 	if cached, ok := GetCachedLyrics(songID); ok {
 		return cached, nil
 	}
 
-	// Try LRCLIB for synced lyrics (prioritized)
-	lrc, err := fetchLrcLib(artist, title)
-	if err == nil && lrc != nil {
+	tryStructured := func() (LyricsResult, bool, error) {
+		structured, err := GetLyricsBySongID(songID)
+		if err != nil {
+			return LyricsResult{}, false, err
+		}
+		if len(structured) == 0 {
+			return LyricsResult{}, false, nil
+		}
+
+		res := LyricsResult{Structured: structured}
+		SetCachedLyrics(songID, res)
+		return res, true, nil
+	}
+
+	tryPlain := func() (LyricsResult, bool, error) {
+		plain, err := GetLyrics(artist, title)
+		if err != nil {
+			return LyricsResult{}, false, err
+		}
+		if plain == "" {
+			return LyricsResult{}, false, nil
+		}
+
+		res := LyricsResult{Plain: plain}
+		SetCachedLyrics(songID, res)
+		return res, true, nil
+	}
+
+	tryLrcLib := func() (LyricsResult, bool, error) {
+		lrc, err := fetchLrcLib(artist, title)
+		if err != nil {
+			return LyricsResult{}, false, err
+		}
+		if lrc == nil {
+			return LyricsResult{}, false, nil
+		}
+
 		if lrc.SyncedLyrics != "" {
 			lines := parseSyncedLyrics(lrc.SyncedLyrics)
 			if len(lines) > 0 {
@@ -83,29 +116,41 @@ func FetchLyrics(songID, artist, title string) (LyricsResult, error) {
 					},
 				}
 				SetCachedLyrics(songID, res)
-				return res, nil
+				return res, true, nil
 			}
 		}
+
 		if lrc.PlainLyrics != "" {
 			res := LyricsResult{Plain: lrc.PlainLyrics}
 			SetCachedLyrics(songID, res)
+			return res, true, nil
+		}
+
+		return LyricsResult{}, false, nil
+	}
+
+	mode := NormalizeLyricsSourceMode(AppConfig.Lyrics.SourceMode)
+	attempts := []func() (LyricsResult, bool, error){tryStructured, tryPlain}
+	if mode == LyricsSourceOn {
+		attempts = []func() (LyricsResult, bool, error){tryLrcLib, tryStructured, tryPlain}
+	} else if mode == LyricsSourceFallback {
+		attempts = []func() (LyricsResult, bool, error){tryStructured, tryPlain, tryLrcLib}
+	}
+
+	var firstErr error
+	for _, attempt := range attempts {
+		res, ok, err := attempt()
+		if ok {
 			return res, nil
+		}
+		if err != nil && firstErr == nil {
+			firstErr = err
 		}
 	}
 
-	structured, err := GetLyricsBySongID(songID)
-	// If we got valid structured lyrics directly from Subsonic, use them as fallback.
-	if err == nil && len(structured) > 0 {
-		res := LyricsResult{Structured: structured}
-		SetCachedLyrics(songID, res)
-		return res, nil
+	if firstErr != nil {
+		return LyricsResult{}, firstErr
 	}
 
-	plain, err := GetLyrics(artist, title)
-	if err != nil {
-		return LyricsResult{}, err
-	}
-	res := LyricsResult{Plain: plain}
-	SetCachedLyrics(songID, res)
-	return res, nil
+	return LyricsResult{}, nil
 }

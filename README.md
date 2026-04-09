@@ -12,6 +12,7 @@ SubTUI is your next favorite lightweight, terminal-based music player for Subson
 * **Gapless Playback**: Enjoy your favorite albums exactly as intended with smooth, uninterrupted transitions
 * **MPRIS Support**: Control SubTUI from any media widget on Linux/FreeBSD
 * **Discord Integration**: Show off what you're listening to with built-in Discord Rich Presence
+* **Line-by-line Lyrics**: Get synchronized lyrics with LRCLIB and display them while you listen (optional)
 
 ![Main View](./screenshots/main_view.png)
 

@@ -347,8 +347,7 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, getCoverArtCmd(currentSong.ID))
 		}
 
-		// Lyrics Update/reset. Media player mode should always hydrate lyrics in the background,
-		// but the panel still only renders when lyricsVisible is true.
+		// Refresh lyrics in the background when the panel is visible or media player mode is active.
 		if m.showMediaPlayer || m.lyricsVisible {
 			if m.lyricsSongID != currentSong.ID {
 				m.lyricsLoading = true
@@ -414,18 +413,19 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 			}
 			m.lyricsCurrentLine = currentLine
 
-			if api.AppConfig.Lyrics.AutoScroll && m.lyricsVisible && !m.lyricsManualScroll {
-				// Estimate visible lines (conservative estimate)
+			// Check if 3 seconds have passed since manual scroll stopped
+			if m.lyricsManualScroll && time.Since(m.lyricsScrollStopTime) > 3*time.Second {
+				m.lyricsManualScroll = false
+			}
+
+			if api.AppConfig.Lyrics.AutoScroll && (m.lyricsVisible || m.showMediaPlayer) && !m.lyricsManualScroll {
 				maxVis := (m.height - 8) / 2
 				if maxVis < 1 {
 					maxVis = 1
 				}
 
-				// Total lines in lyrics
 				totalLines := len(chosen.Lines)
 
-				// If we have more lines to show after current line, center current line
-				// Otherwise, scroll so last lines are at the bottom
 				linesAfter := totalLines - currentLine
 				if linesAfter > maxVis {
 					offset := currentLine - (maxVis / 2)
@@ -434,7 +434,6 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 					}
 					m.lyricsScrollOff = offset
 				} else {
-					// Scroll so the last line is visible at bottom
 					offset := totalLines - maxVis
 					if offset < 0 {
 						offset = 0
@@ -444,7 +443,12 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 	} else if m.lyricsResult.Plain != "" {
-		if api.AppConfig.Lyrics.AutoScroll && m.lyricsVisible && !m.lyricsManualScroll {
+		// Check if 3 seconds have passed since manual scroll stopped
+		if m.lyricsManualScroll && time.Since(m.lyricsScrollStopTime) > 3*time.Second {
+			m.lyricsManualScroll = false
+		}
+
+		if api.AppConfig.Lyrics.AutoScroll && (m.lyricsVisible || m.showMediaPlayer) && !m.lyricsManualScroll {
 			lines := strings.Split(m.lyricsResult.Plain, "\n")
 			totalLines := len(lines)
 			if totalLines > 0 && m.playerStatus.Duration > 0 {
@@ -455,15 +459,9 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 					ratio = 1
 				}
 
-				// Max lines visible in UI height (approx)
 				visibleLines := m.height - 3
 				if totalLines > visibleLines {
-					// We want to scroll from 0 at ratio=0, up to (totalLines - visibleLines) at ratio=1
-					// Wait, the user specifically requested:
-					// "during the first half of the song, the most lyrics should be displayed from the top,
-					// during the second half, the most lyrics should be displayed from the bottom."
-					// So if ratio < 0.5 we can just show top (0 offset)
-					// if ratio >= 0.5 we can just show bottom.
+					// Show the top half of the lyrics early and the bottom half later.
 					if ratio < 0.5 {
 						m.lyricsScrollOff = 0
 					} else {

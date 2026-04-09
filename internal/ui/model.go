@@ -81,6 +81,7 @@ type model struct {
 	// View States
 	showMediaPlayer bool
 	showHelp        bool
+	showLoginExtras bool
 	showPlaylists   bool
 	showRating      bool
 	helpModel       HelpModel
@@ -106,6 +107,7 @@ type model struct {
 	lyricsError          string           // non-empty if the last fetch failed
 	lyricsCurrentLine    int              // index of the currently active line (synced mode)
 	lyricsManualScroll   bool             // true if the user has manually scrolled; suppresses auto-scroll
+	lyricsScrollStopTime time.Time        // when manual scrolling was initiated; used for the 3-second delay
 }
 
 type HelpModel struct {

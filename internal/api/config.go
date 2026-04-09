@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 
 	"github.com/pelletier/go-toml/v2"
 )
@@ -202,6 +203,24 @@ type LyricsConfig struct {
 	PanelWidth int    `toml:"panel_width"`
 	Toggle     string `toml:"toggle"`
 	AutoScroll bool   `toml:"auto_scroll"`
+	SourceMode string `toml:"source_mode" comment:"LRCLIB source mode: 'off', 'fallback', or 'on'"`
+}
+
+const (
+	LyricsSourceOff      = "off"
+	LyricsSourceFallback = "fallback"
+	LyricsSourceOn       = "on"
+)
+
+func NormalizeLyricsSourceMode(mode string) string {
+	switch strings.ToLower(strings.TrimSpace(mode)) {
+	case LyricsSourceOn:
+		return LyricsSourceOn
+	case LyricsSourceFallback:
+		return LyricsSourceFallback
+	default:
+		return LyricsSourceOff
+	}
 }
 
 func createDefaultConfig(path string, content []byte, label string, permissions os.FileMode) error {
