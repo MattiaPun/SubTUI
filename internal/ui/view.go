@@ -747,7 +747,6 @@ func mediaPlayerContent(m model) string {
 func mediaPlayerSideContent(m model, width int, height int) string {
 	var mediaPlayerSongContent string
 	var mediaPlayerQueueContent string
-	var mediaPlayerCoverArtContent string
 
 	var mediaInfoHeight int
 	var queueHeight int
@@ -763,27 +762,29 @@ func mediaPlayerSideContent(m model, width int, height int) string {
 		Render(mediaPlayerSideSongContent(m, width, mediaInfoHeight))
 
 	// Queue
+	if m.coverArt == nil {
+		queueHeight = height - lipgloss.Height(mediaPlayerSongContent) + 1
+	}
 	mediaPlayerQueueContent = borderStyle.
 		Width(width).
 		Height(queueHeight).
-		Render(mediaPlayerSideQueueContent(m, width))
+		Render(mediaPlayerSideQueueContent(m, width, queueHeight))
+
+	sections := []string{mediaPlayerSongContent, mediaPlayerQueueContent}
 
 	// Cover Art
-	coverArtHeight = height - lipgloss.Height(mediaPlayerSongContent) - lipgloss.Height(mediaPlayerQueueContent) + 1
-	mediaPlayerCoverArtContent = borderStyle.
-		Width(width).
-		Height(coverArtHeight).
-		Align(lipgloss.Center).
-		AlignVertical(lipgloss.Center).
-		Render(mediaPlayerSideCoverArtContent(m))
+	if m.coverArt != nil { // only render if enabled
+		coverArtHeight = height - lipgloss.Height(mediaPlayerSongContent) - lipgloss.Height(mediaPlayerQueueContent) + 1
+		sections = append(sections, borderStyle.
+			Width(width).
+			Height(coverArtHeight).
+			Align(lipgloss.Center).
+			AlignVertical(lipgloss.Center).
+			Render(m.coverMosaic.Render(m.coverArt)))
+	}
 
 	// Combining
-	return lipgloss.JoinVertical(
-		lipgloss.Left,
-		mediaPlayerSongContent,
-		mediaPlayerQueueContent,
-		mediaPlayerCoverArtContent,
-	)
+	return lipgloss.JoinVertical(lipgloss.Left, sections...)
 }
 
 // Generate the media player song information
@@ -905,15 +906,17 @@ func mediaPlayerSideSongContent(m model, width int, height int) string {
 }
 
 // Generate the media player queue
-func mediaPlayerSideQueueContent(m model, width int) string {
+func mediaPlayerSideQueueContent(m model, width int, height int) string {
 	var header string
 	var separator string
 	var queue string
+	var songCount int
 
 	header = highlightStyle.Bold(true).Render(" Next up:")
 	separator = strings.Repeat("-", width)
+	songCount = height - 2 // 2: header + seperator
 
-	for i := 1; i <= 5; i++ {
+	for i := 1; i <= songCount; i++ {
 		if m.queueIndex+i < len(m.queue) {
 			song := m.queue[m.queueIndex+i]
 			queue += truncate(fmt.Sprintf(" %d. %s - %s", i, song.Title, song.Artist), width) + "\n"
@@ -931,17 +934,6 @@ func mediaPlayerSideQueueContent(m model, width int) string {
 		separator,
 		queue,
 	)
-}
-
-// Generate the media player art cover
-func mediaPlayerSideCoverArtContent(m model) string {
-	if m.coverArt == nil {
-		// No album art
-		return "No album art to display"
-	} else {
-		// Display album art
-		return m.coverMosaic.Render(m.coverArt)
-	}
 }
 
 // Generate the media player lyrics
