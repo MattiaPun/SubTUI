@@ -2,11 +2,14 @@ package ui
 
 import (
 	"bytes"
-	"image/jpeg"
+	"image"
+	_ "image/jpeg"
+	_ "image/png"
 	"path/filepath"
 
 	"github.com/MattiaPun/SubTUI/v2/internal/api"
 	tea "github.com/charmbracelet/bubbletea"
+	_ "golang.org/x/image/webp"
 )
 
 func attemptLoginCmd() tea.Cmd {
@@ -149,7 +152,7 @@ func getCoverArtCmd(songID string) tea.Cmd {
 			return nil
 		}
 
-		img, err := jpeg.Decode(bytes.NewReader(imgData))
+		img, _, err := image.Decode(bytes.NewReader(imgData))
 		if err != nil {
 			return nil
 		}
