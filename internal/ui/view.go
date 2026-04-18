@@ -919,7 +919,8 @@ func mediaPlayerSideQueueContent(m model, width int, height int) string {
 	for i := 1; i <= songCount; i++ {
 		if m.queueIndex+i < len(m.queue) {
 			song := m.queue[m.queueIndex+i]
-			queue += truncate(fmt.Sprintf(" %d. %s - %s", i, song.Title, song.Artist), width) + "\n"
+			songIndexString := LimitString(fmt.Sprintf(" %d.", m.queueIndex+i+1), 4)
+			queue += truncate(fmt.Sprintf("%s %s - %s", songIndexString, song.Title, song.Artist), width) + "\n"
 		} else {
 			queue += "\n"
 		}
