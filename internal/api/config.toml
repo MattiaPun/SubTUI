@@ -4,6 +4,7 @@ gapless_playback = 'yes' # Options:  'yes', 'no', 'weak' https://mpv.io/manual/s
 desktop_notifications = true
 discord_rich_presence = true
 mouse_support         = false
+default_volume = -1  # Use -1 to let the player set volume, or 0-100 for a preset initial volume
 
 [theme]
 display_album_art  = true

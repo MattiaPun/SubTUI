@@ -225,6 +225,11 @@ func (m model) handleLoginResult(msg loginResultMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	// Initialize volume
+	if api.AppConfig.App.Volume != -1 {
+		player.SetVolume(api.AppConfig.App.Volume)
+	}
+
 	m.viewMode = viewList
 	m.focus = focusSearch
 	m.loginErr = ""

@@ -156,19 +156,13 @@ func Forward10Seconds() {
 }
 
 func VolumeUp() {
-	if mpvClient.CurrentVolume()+volumeStep > 100 {
-		_ = mpvClient.Volume(100)
-		return
-	}
-	_ = mpvClient.Volume(mpvClient.CurrentVolume() + volumeStep)
+	newVolume := ((mpvClient.CurrentVolume() / volumeStep) + 1) * volumeStep
+	SetVolume(newVolume)
 }
 
 func VolumeDown() {
-	if mpvClient.CurrentVolume()-volumeStep < 0 {
-		_ = mpvClient.Volume(0)
-		return
-	}
-	_ = mpvClient.Volume(mpvClient.CurrentVolume() - volumeStep)
+	newVolume := ((mpvClient.CurrentVolume() - 1) / volumeStep) * volumeStep
+	SetVolume(newVolume)
 }
 
 func GetVolume() float64 {
@@ -177,6 +171,11 @@ func GetVolume() float64 {
 }
 
 func SetVolume(volume int) {
+	if volume < 0 {
+		volume = 0
+	} else if volume > 100 {
+		volume = 100
+	}
 	_ = mpvClient.Volume(volume)
 }
 
