@@ -54,7 +54,7 @@ type App struct {
 	Notifications   bool   `toml:"desktop_notifications"`
 	DiscordRPC      bool   `toml:"discord_rich_presence"`
 	MouseSupport    bool   `toml:"mouse_support"`
-	Volume          int    `toml:"default_volume"`
+	Volume          int    `toml:"default_volume" comment:"0-100 for a preset initial volume, -1 to disable"`
 }
 
 type Theme struct {
