@@ -134,13 +134,10 @@ func openLikedSongsCmd() tea.Cmd {
 	}
 }
 
-func toggleStarCmd(id string, isCurrentlyStarred bool) tea.Cmd {
+func toggleStarCmd(idsToStar []string, idsToUnstar []string) tea.Cmd {
 	return func() tea.Msg {
-		if isCurrentlyStarred {
-			api.SubsonicUnstar(id)
-		} else {
-			api.SubsonicStar(id)
-		}
+		go api.SubsonicStar(idsToStar)
+		go api.SubsonicUnstar(idsToUnstar)
 		return nil
 	}
 }
@@ -185,33 +182,35 @@ func savePlayQueueCmd(ids []string, currentID string) tea.Cmd {
 	}
 }
 
-func addSongToPlaylistCmd(songID string, playlistID string) tea.Cmd {
+func addSongToPlaylistCmd(playlistID string, songIds []string) tea.Cmd {
 	return func() tea.Msg {
 
-		if songID != "" && playlistID != "" {
-			api.SubsonicAddToPlaylist(songID, playlistID)
+		if playlistID == "" || len(songIds) == 0 {
+			return nil
+		}
+
+		api.SubsonicAddToPlaylist(playlistID, songIds)
+		return nil
+	}
+}
+
+func addRatingCmd(ids []string, rating int) tea.Cmd {
+	return func() tea.Msg {
+		if rating >= 00 && rating <= 5 && len(ids) > 0 {
+			for i := range ids {
+				go api.SubsonicRate(ids[i], rating)
+			}
 		}
 
 		return nil
 	}
 }
 
-func addRatingCmd(ID string, rating int) tea.Cmd {
+func createMediaShareCmd(ids []string) tea.Cmd {
 	return func() tea.Msg {
 
-		if ID != "" && rating >= 0 && rating <= 5 {
-			api.SubsonicRate(ID, rating)
-		}
-
-		return nil
-	}
-}
-
-func createMediaShareCmd(ID string) tea.Cmd {
-	return func() tea.Msg {
-
-		if ID != "" {
-			url, err := api.SubsonicCreateShare(ID)
+		if len(ids) > 0 {
+			url, err := api.SubsonicCreateShare(ids)
 			if err != nil {
 				return errMsg{err}
 			}

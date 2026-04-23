@@ -94,7 +94,7 @@ type model struct {
 	// Selection state
 	showSelection   bool
 	selectionAnchor int
-	selectionArray  map[int]bool
+	selectionMap    map[int]bool
 
 	// Mouse state
 	lastClickTime time.Time

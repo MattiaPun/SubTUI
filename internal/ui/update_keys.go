@@ -240,7 +240,7 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	// FAVORITES KEYBINDS
 	if keyMatches(key, api.AppConfig.Keybinds.Favorites.ToggleFavorite) {
-		return mediaToggleFavorite(m, msg)
+		return mediaToggleFavorite(m)
 	}
 
 	if keyMatches(key, api.AppConfig.Keybinds.Favorites.ViewFavorites) {
@@ -325,6 +325,9 @@ func enter(m model) (tea.Model, tea.Cmd) {
 			m.pageHasMore = true
 			m.lastSearchQuery = query
 
+			// Reset selection
+			m = resetSelection(m)
+
 			switch m.filterMode {
 			case filterSongs:
 				m.displayMode = displaySongs
@@ -367,6 +370,9 @@ func enter(m model) (tea.Model, tea.Cmd) {
 					m.pageHasMore = true
 					m.lastSearchQuery = ""
 
+					// Reset selection
+					m = resetSelection(m)
+
 					return m, getAlbumSongs(selectedAlbum.ID, false)
 				}
 
@@ -391,6 +397,9 @@ func enter(m model) (tea.Model, tea.Cmd) {
 					m.pageHasMore = true
 					m.lastSearchQuery = ""
 
+					// Reset selection
+					m = resetSelection(m)
+
 					return m, getArtistAlbums(selectedArtist.ID)
 				}
 			}
@@ -407,6 +416,9 @@ func enter(m model) (tea.Model, tea.Cmd) {
 		m.loading = true
 		m.focus = focusMain
 		m.viewMode = viewList
+
+		// Reset selection
+		m = resetSelection(m)
 
 		if m.cursorSide < albumOffset {
 			m.displayMode = displayAlbums
@@ -456,7 +468,7 @@ func toggleSelection(m model) (tea.Model, tea.Cmd) {
 	}
 
 	// Clear map
-	m.selectionArray = make(map[int]bool)
+	m.selectionMap = make(map[int]bool)
 
 	return m, nil
 }
@@ -827,7 +839,6 @@ func cycleFilter(m model, forward bool) model {
 
 func toggleQueue(m model) model {
 	if m.focus != focusSearch {
-
 		switch m.viewMode {
 		case viewList:
 			m.viewMode = viewQueue
@@ -845,6 +856,9 @@ func toggleQueue(m model) model {
 			m.cursorMain = 0
 			m.mainOffset = 0
 		}
+
+		// Reset selection
+		m = resetSelection(m)
 	}
 
 	return m
@@ -908,10 +922,10 @@ func mediaQueueNext(m model) model {
 		selectedSongs := getSelectedSongs(m)
 
 		if selectedSongs != nil {
-			if len(m.queue) == 0 {
+			if len(m.queue) == 0 { // Create a new queue
 				m.queue = selectedSongs
 				m.queueIndex = 0
-			} else {
+			} else { // Add to current queue
 				insertAt := m.queueIndex + 1
 				tail := append([]api.Song{}, m.queue[insertAt:]...)
 				m.queue = append(m.queue[:insertAt], append(selectedSongs, tail...)...)
@@ -946,17 +960,58 @@ func mediaQueueLast(m model) model {
 }
 
 func mediaDeleteSongFromQueue(m model) model {
-	if m.focus == focusMain && m.viewMode == viewQueue && len(m.queue) > 0 {
-		if m.cursorMain != m.queueIndex {
-			m.queue = append(m.queue[:m.cursorMain], m.queue[m.cursorMain+1:]...)
-			if m.cursorMain < m.queueIndex {
-				m.queueIndex--
+	if m.focus != focusMain || m.viewMode != viewQueue || len(m.queue) == 0 {
+		return m
+	}
+
+	// Get songs to delete
+	toDelete := make(map[int]bool)
+	if m.showSelection && len(m.selectionMap) > 0 {
+		for k := range m.selectionMap {
+			toDelete[k] = true
+		}
+	} else {
+		toDelete[m.cursorMain] = true
+	}
+
+	// Do not remove current playing song
+	if toDelete[m.queueIndex] {
+		delete(toDelete, m.queueIndex)
+	}
+
+	// Return if nothing to delete
+	if len(toDelete) == 0 {
+		return m
+	}
+
+	var newQueue []api.Song
+	newQueueIndex := m.queueIndex
+
+	for i, song := range m.queue {
+		if toDelete[i] {
+			// Shift index if song before index is deleted
+			if i < m.queueIndex {
+				newQueueIndex--
 			}
+		} else {
+			newQueue = append(newQueue, song) // Keep the song
 		}
 	}
 
-	if m.cursorMain >= len(m.queue) && m.cursorMain > 0 {
-		m.cursorMain--
+	// Set new queue
+	m.queue = newQueue
+	m.queueIndex = newQueueIndex
+
+	// Update cursor if out of bounds
+	if m.cursorMain >= len(m.queue) {
+		m.cursorMain = len(m.queue) - 1
+		if m.cursorMain < 0 {
+			m.cursorMain = 0
+		}
+	}
+
+	if m.showSelection {
+		m = resetSelection(m)
 	}
 
 	// Sync MPV's Queue
@@ -964,7 +1019,6 @@ func mediaDeleteSongFromQueue(m model) model {
 
 	return m
 }
-
 func mediaClearQueue(m model) model {
 	if m.focus == focusMain {
 		m.queue = nil
@@ -982,51 +1036,96 @@ func mediaClearQueue(m model) model {
 }
 
 func mediaSongUpQueue(m model) model {
-	if m.focus == focusMain && m.viewMode == viewQueue && m.cursorMain > 0 {
-		tempSong := m.queue[m.cursorMain]
+	if m.focus != focusMain || m.viewMode != viewQueue {
+		return m
+	}
 
-		m.queue[m.cursorMain] = m.queue[m.cursorMain-1]
-		m.queue[m.cursorMain-1] = tempSong
+	minIndex, maxIndex := m.cursorMain, m.cursorMain
+	if m.showSelection && len(m.selectionMap) > 0 {
+		minIndex, maxIndex = -1, -1
+		for i := range m.selectionMap {
+			if minIndex == -1 || i < minIndex {
+				minIndex = i
+			}
+			if maxIndex == -1 || i > maxIndex {
+				maxIndex = i
+			}
+		}
+	}
 
-		switch m.queueIndex {
-		case m.cursorMain:
+	if minIndex > 0 {
+		target := m.queue[minIndex-1]
+
+		copy(m.queue[minIndex-1:maxIndex], m.queue[minIndex:maxIndex+1])
+		m.queue[maxIndex] = target
+
+		if m.queueIndex == minIndex-1 {
+			m.queueIndex = maxIndex
+		} else if m.queueIndex >= minIndex && m.queueIndex <= maxIndex {
 			m.queueIndex--
-		case m.cursorMain - 1:
-			m.queueIndex++
+		}
+
+		if m.showSelection {
+			newMap := make(map[int]bool)
+			for k := range m.selectionMap {
+				newMap[k-1] = true
+			}
+			m.selectionMap = newMap
+			m.selectionAnchor--
 		}
 
 		m.cursorMain--
 	}
 
-	// Sync MPV's Queue
 	m.syncNextSong()
-
 	return m
 }
 
 func mediaSongDownQueue(m model) model {
-	if m.focus == focusMain && m.viewMode == viewQueue && m.cursorMain < len(m.queue)-1 {
-		tempSong := m.queue[m.cursorMain]
+	if m.focus != focusMain || m.viewMode != viewQueue {
+		return m
+	}
 
-		m.queue[m.cursorMain] = m.queue[m.cursorMain+1]
-		m.queue[m.cursorMain+1] = tempSong
+	minIndex, maxIndex := m.cursorMain, m.cursorMain
+	if m.showSelection && len(m.selectionMap) > 0 {
+		minIndex, maxIndex = -1, -1
+		for i := range m.selectionMap {
+			if minIndex == -1 || i < minIndex {
+				minIndex = i
+			}
+			if maxIndex == -1 || i > maxIndex {
+				maxIndex = i
+			}
+		}
+	}
 
-		switch m.queueIndex {
-		case m.cursorMain:
+	if maxIndex < len(m.queue)-1 {
+		target := m.queue[maxIndex+1]
+
+		copy(m.queue[minIndex+1:maxIndex+2], m.queue[minIndex:maxIndex+1])
+		m.queue[minIndex] = target
+
+		if m.queueIndex == maxIndex+1 {
+			m.queueIndex = minIndex
+		} else if m.queueIndex >= minIndex && m.queueIndex <= maxIndex {
 			m.queueIndex++
-		case m.cursorMain + 1:
-			m.queueIndex--
+		}
+
+		if m.showSelection {
+			newMap := make(map[int]bool)
+			for k := range m.selectionMap {
+				newMap[k+1] = true
+			}
+			m.selectionMap = newMap
+			m.selectionAnchor++
 		}
 
 		m.cursorMain++
 	}
 
-	// Sync MPV's Queue
 	m.syncNextSong()
-
 	return m
 }
-
 func mediaRestartSong(m model) model {
 	if m.focus != focusSearch {
 		player.RestartSong()
@@ -1122,58 +1221,40 @@ func mediaToggleLoop(m model) model {
 	return m
 }
 
-func mediaToggleFavorite(m model, msg tea.Msg) (model, tea.Cmd) {
-	var id string
+func mediaToggleFavorite(m model) (model, tea.Cmd) {
+	var ids []string
+	var idsToStar []string
+	var idsToUnstar []string
 
 	switch m.focus {
-	case focusSearch: // Focus search bar
-		return typeInput(m, msg)
-
 	case focusMain: // Focus main view
-		switch m.displayMode {
-		case displaySongs: // Songs
-			var targetList []api.Song
-			switch m.viewMode {
-			case viewList:
-				targetList = m.songs
-			case viewQueue:
-				targetList = m.queue
-			}
-
-			if len(targetList) > 0 {
-				id = targetList[m.cursorMain].ID
-			}
-
-		case displayAlbums: // Albums
-			if len(m.albums) > 0 {
-				id = m.albums[m.cursorMain].ID
-			}
-		case displayArtist: // Artists
-			if len(m.artists) > 0 {
-				id = m.artists[m.cursorMain].ID
-			}
-		}
+		ids = selectionIdsGetter(m)
 
 	case focusSong: // Focus footer
 		if len(m.queue) > 0 {
-			id = m.queue[m.queueIndex].ID
+			ids = []string{m.queue[m.queueIndex].ID}
 		}
 	}
 
 	// Return on no ID
-	if id == "" {
+	if len(ids) == 0 {
 		return m, nil
 	}
 
-	// Toggle favorite
-	isStarred := m.starredMap[id]
-	if isStarred {
-		delete(m.starredMap, id)
-	} else {
-		m.starredMap[id] = true
+	// Toggle favorite status
+	for i := range ids {
+		id := ids[i]
+		isStarred := m.starredMap[id]
+		if isStarred {
+			delete(m.starredMap, id)
+			idsToUnstar = append(idsToUnstar, id)
+		} else {
+			m.starredMap[id] = true
+			idsToStar = append(idsToStar, id)
+		}
 	}
 
-	return m, toggleStarCmd(id, isStarred)
+	return m, toggleStarCmd(idsToStar, idsToUnstar)
 }
 
 func mediaShowFavorites(m model, msg tea.Msg) (model, tea.Cmd) {
@@ -1238,21 +1319,42 @@ func mediaCreateShare(m model) tea.Cmd {
 		return nil
 	}
 
-	var id string
+	var ids []string
+	switch m.displayMode {
+	case displaySongs:
+		var targetList []api.Song
 
-	switch {
-	case m.viewMode == viewList && m.displayMode == displaySongs && len(m.songs) > 0:
-		id = m.songs[m.cursorMain].ID
+		switch m.viewMode {
+		case viewList:
+			targetList = m.songs
+		case viewQueue:
+			targetList = m.queue
+		}
 
-	case m.viewMode == viewList && m.displayMode == displayAlbums && len(m.albums) > 0:
-		id = m.albums[m.cursorMain].ID
+		if len(targetList) > 0 {
+			if m.showSelection { // Add selection
+				for i := range m.selectionMap {
+					ids = append(ids, targetList[i].ID)
+				}
+			} else { // Add single song
+				ids = []string{targetList[m.cursorMain].ID}
+			}
+		}
 
-	case m.viewMode == viewQueue && len(m.queue) > 0:
-		id = m.queue[m.cursorMain].ID
+	case displayAlbums: // Albums
+		if len(m.albums) > 0 {
+			if m.showSelection { // Add selection
+				for i := range m.selectionMap {
+					ids = append(ids, m.albums[i].ID)
+				}
+			} else { // Add single album
+				ids = []string{m.albums[m.cursorMain].ID}
+			}
+		}
 	}
 
-	if id != "" {
-		return createMediaShareCmd(id)
+	if len(ids) > 0 {
+		return createMediaShareCmd(ids)
 	}
 
 	return nil
@@ -1522,7 +1624,6 @@ func playerMenu(m model, msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func playlistsMenu(key string, m model) (model, tea.Cmd) {
-	var cmd tea.Cmd
 	if keyMatches(key, api.AppConfig.Keybinds.Global.Back) || keyMatches(key, api.AppConfig.Keybinds.Library.AddToPlaylist) {
 		m.showPlaylists = false
 		m.cursorPopup = 0
@@ -1542,15 +1643,38 @@ func playlistsMenu(key string, m model) (model, tea.Cmd) {
 			m.cursorPopup++
 		}
 	} else if keyMatches(key, api.AppConfig.Keybinds.Navigation.Select) {
+		var targetList []api.Song
+		var ids []string
 		inBounds := cursorInBounds(m)
 
-		if m.viewMode == viewList && inBounds {
-			cmd = addSongToPlaylistCmd(m.songs[m.cursorMain].ID, m.playlists[m.cursorPopup].ID)
-		} else if m.viewMode == viewQueue && inBounds {
-			cmd = addSongToPlaylistCmd(m.queue[m.cursorMain].ID, m.playlists[m.cursorPopup].ID)
+		// Cursor out of bounds
+		if !inBounds {
+			return m, nil
 		}
+
+		switch m.viewMode {
+		case viewList:
+			targetList = m.songs
+		case viewQueue:
+			targetList = m.queue
+		}
+
+		// No target list
+		if len(targetList) == 0 {
+			return m, nil
+		}
+
+		if m.showSelection { // Add selection
+			for i := range m.selectionMap {
+				ids = append(ids, targetList[i].ID)
+			}
+		} else { // Add single song
+			ids = []string{targetList[m.cursorMain].ID}
+		}
+
+		// Toggle playlist view
 		m.showPlaylists = !m.showPlaylists
-		return m, cmd
+		return m, addSongToPlaylistCmd(m.playlists[m.cursorPopup].ID, ids)
 	}
 
 	return m, nil
@@ -1569,58 +1693,68 @@ func ratingMenu(key string, m model) (model, tea.Cmd) {
 	} else if keyMatches(key, api.AppConfig.Keybinds.Navigation.Down) && m.cursorPopup < 5 {
 		m.cursorPopup++
 	} else if keyMatches(key, api.AppConfig.Keybinds.Navigation.Select) && cursorInBounds(m) {
+		m, cmd = setRating(m, m.cursorPopup)
 
-		switch m.displayMode {
-		case displaySongs:
-			switch m.viewMode {
-			case viewList:
-				m.songs[m.cursorMain].Rating = m.cursorPopup
-				cmd = addRatingCmd(m.songs[m.cursorMain].ID, m.cursorPopup)
-			case viewQueue:
-				m.queue[m.cursorMain].Rating = m.cursorPopup
-				cmd = addRatingCmd(m.queue[m.cursorMain].ID, m.cursorPopup)
-			}
-		case displayAlbums:
-			cmd = addRatingCmd(m.albums[m.cursorMain].ID, m.cursorPopup)
-			m.albums[m.cursorMain].Rating = m.cursorPopup
-		case displayArtist:
-			cmd = addRatingCmd(m.artists[m.cursorMain].ID, m.cursorPopup)
-			m.artists[m.cursorMain].Rating = m.cursorPopup
-		}
-
+		// Reset popup
 		m.cursorPopup = 0
 		m.showRating = !m.showRating
+
 		return m, cmd
 	}
 
 	return m, nil
 }
 
-func setRating(m model, rating int) (tea.Model, tea.Cmd) {
+func setRating(m model, rating int) (model, tea.Cmd) {
 	if !cursorInBounds(m) {
 		return m, nil
 	}
 
-	var cmd tea.Cmd
+	var ids []string
 	switch m.displayMode {
 	case displaySongs:
+		var targetList []api.Song
 		switch m.viewMode {
 		case viewList:
-			m.songs[m.cursorMain].Rating = rating
-			cmd = addRatingCmd(m.songs[m.cursorMain].ID, rating)
+			targetList = m.songs
 		case viewQueue:
-			m.queue[m.cursorMain].Rating = rating
-			cmd = addRatingCmd(m.queue[m.cursorMain].ID, rating)
+			targetList = m.queue
 		}
+
+		if m.showSelection { // Add selection
+			for i := range m.selectionMap {
+				targetList[i].Rating = rating
+				ids = append(ids, targetList[i].ID)
+			}
+		} else { // Add single album
+			targetList[m.cursorMain].Rating = rating
+			ids = []string{targetList[m.cursorMain].ID}
+		}
+
 	case displayAlbums:
-		m.albums[m.cursorMain].Rating = rating
-		cmd = addRatingCmd(m.albums[m.cursorMain].ID, rating)
+		if m.showSelection { // Add selection
+			for i := range m.selectionMap {
+				m.albums[i].Rating = rating
+				ids = append(ids, m.albums[i].ID)
+			}
+		} else { // Add single album
+			m.albums[m.cursorMain].Rating = rating
+			ids = []string{m.albums[m.cursorMain].ID}
+		}
+
 	case displayArtist:
-		m.artists[m.cursorMain].Rating = rating
-		cmd = addRatingCmd(m.artists[m.cursorMain].ID, rating)
+		if m.showSelection { // Add selection
+			for i := range m.selectionMap {
+				m.artists[i].Rating = rating
+				ids = append(ids, m.artists[i].ID)
+			}
+		} else { // Add single artist
+			m.artists[m.cursorMain].Rating = rating
+			ids = []string{m.artists[m.cursorMain].ID}
+		}
 	}
 
-	return m, cmd
+	return m, addRatingCmd(ids, rating)
 }
 
 // Helper for infinte scrolling
@@ -1679,6 +1813,7 @@ func cursorInBounds(m model) bool {
 	return false
 }
 
+// Helper for highlighting selections
 func selectionScroller(m model) model {
 	if m.showSelection {
 		start := m.selectionAnchor
@@ -1690,12 +1825,71 @@ func selectionScroller(m model) model {
 		}
 
 		// Clear selection
-		m.selectionArray = make(map[int]bool)
+		m.selectionMap = make(map[int]bool)
 
 		// Select everything in range
 		for i := start; i <= end; i++ {
-			m.selectionArray[i] = true
+			m.selectionMap[i] = true
 		}
 	}
+	return m
+}
+
+// Helper for getting all ID's from a selection
+func selectionIdsGetter(m model) []string {
+	var ids []string
+
+	switch m.displayMode {
+	case displaySongs: // Songs
+		var targetList []api.Song
+		switch m.viewMode {
+		case viewList:
+			targetList = m.songs
+		case viewQueue:
+			targetList = m.queue
+		}
+
+		if len(targetList) > 0 {
+			if m.showSelection { // Add selection
+				for i := range m.selectionMap {
+					ids = append(ids, targetList[i].ID)
+				}
+			} else { // Add single song
+				ids = []string{targetList[m.cursorMain].ID}
+			}
+		}
+
+	case displayAlbums: // Albums
+		if len(m.albums) > 0 {
+			if m.showSelection { // Add selection
+				for i := range m.selectionMap {
+					ids = append(ids, m.albums[i].ID)
+				}
+			} else { // Add single album
+				ids = []string{m.albums[m.cursorMain].ID}
+			}
+		}
+
+	case displayArtist: // Artists
+		if len(m.artists) > 0 {
+			if m.showSelection { // Add selection
+				for i := range m.selectionMap {
+					ids = append(ids, m.artists[i].ID)
+				}
+			} else { // Add single artist
+				ids = []string{m.artists[m.cursorMain].ID}
+			}
+		}
+	}
+
+	return ids
+}
+
+// Helper for resetting selection state
+func resetSelection(m model) model {
+	m.showSelection = false
+	m.selectionAnchor = -1
+	m.selectionMap = make(map[int]bool)
+
 	return m
 }

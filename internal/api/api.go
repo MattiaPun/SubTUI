@@ -266,20 +266,45 @@ func SubsonicGetArtist(id string) ([]Album, error) {
 	return data.Response.Artist.Albums, nil
 }
 
-func SubsonicStar(id string) {
-	params := map[string]string{
-		"id": id,
+func SubsonicStar(ids []string) {
+	baseUrl := AppServerConfig.Server.URL + "/rest/star"
+
+	v := getAuthParams()
+	for _, id := range ids {
+		v.Add("id", id)
 	}
 
-	_, _ = subsonicGET("/star", params)
+	url := baseUrl + "?" + v.Encode()
+
+	log.Printf("[API] Request: %s", redactURL(url))
+	resp, err := httpClient.Get(url)
+	if err != nil {
+		log.Printf("[API] Failed to star: %v", err)
+		return
+	}
+
+	defer func() { _ = resp.Body.Close() }()
+
 }
 
-func SubsonicUnstar(id string) {
-	params := map[string]string{
-		"id": id,
+func SubsonicUnstar(ids []string) {
+	baseUrl := AppServerConfig.Server.URL + "/rest/unstar"
+
+	v := getAuthParams()
+	for _, id := range ids {
+		v.Add("id", id)
 	}
 
-	_, _ = subsonicGET("/unstar", params)
+	url := baseUrl + "?" + v.Encode()
+
+	log.Printf("[API] Request: %s", redactURL(url))
+	resp, err := httpClient.Get(url)
+	if err != nil {
+		log.Printf("[API] Failed to star: %v", err)
+		return
+	}
+
+	defer func() { _ = resp.Body.Close() }()
 }
 
 func SubsonicGetStarred() (*SearchResult3, error) {
@@ -393,30 +418,57 @@ func SubsonicGetQueue() (*PlayQueue, error) {
 	return &data.Response.PlayQueue, nil
 }
 
-func SubsonicAddToPlaylist(songID string, playlistID string) {
-	params := map[string]string{
-		"playlistId":  playlistID,
-		"songIdToAdd": songID,
+func SubsonicAddToPlaylist(playlistID string, songIds []string) {
+	baseUrl := AppServerConfig.Server.URL + "/rest/updatePlaylist"
+
+	v := getAuthParams()
+	v.Set("playlistId", playlistID)
+	log.Printf("Playlist add: %s", playlistID)
+
+	for _, id := range songIds {
+		v.Add("songIdToAdd", id)
+		log.Printf("Song to add: %s", id)
 	}
 
-	_, _ = subsonicGET("/updatePlaylist", params)
+	url := baseUrl + "?" + v.Encode()
+
+	log.Printf("[API] Request: %s", redactURL(url))
+	resp, err := httpClient.Get(url)
+	if err != nil {
+		log.Printf("[API] Failed to update playlist: %v", err)
+		return
+	}
+
+	defer func() { _ = resp.Body.Close() }()
 }
 
-func SubsonicCreateShare(ID string) (string, error) {
-	params := map[string]string{
-		"id": ID,
+func SubsonicCreateShare(ids []string) (string, error) {
+	baseUrl := AppServerConfig.Server.URL + "/rest/createShare"
+
+	v := getAuthParams()
+	for _, id := range ids {
+		v.Add("id", id)
 	}
 
-	data, err := subsonicGET("/createShare", params)
+	url := baseUrl + "?" + v.Encode()
+
+	log.Printf("[API] Request: %s", redactURL(url))
+	resp, err := httpClient.Get(url)
 	if err != nil {
-		log.Printf("[ERROR] API Error in CreateShare: %v", err)
+		log.Printf("[API] API Error in CreateShare: %v", err)
 		return "", err
 	}
 
-	url := data.Response.Shares.ShareList[0].URL
-	log.Printf("[SHARE] Generated Share URL: %s", url)
+	defer func() { _ = resp.Body.Close() }()
 
-	return url, nil
+	var result SubsonicResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", err
+	}
+
+	shareUrl := result.Response.Shares.ShareList[0].URL
+	return shareUrl, nil
+
 }
 
 func SubsonicGetLyrics(ID string) ([]StructuredLyrics, error) {

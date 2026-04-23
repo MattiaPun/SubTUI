@@ -407,7 +407,7 @@ func mainSongsContent(m model, width int, height int) string {
 		}
 
 		// Apply styling
-		if m.selectionArray[i] {
+		if m.selectionMap[i] {
 			row = selectionStyle.Render(row)
 		} else {
 			row = style.Render(row)
@@ -482,7 +482,7 @@ func mainAlbumsContent(m model, width int, height int) string {
 		}
 
 		// Apply styling
-		if m.selectionArray[i] {
+		if m.selectionMap[i] {
 			row = selectionStyle.Render(row)
 		} else {
 			row = style.Render(row)
@@ -557,7 +557,7 @@ func mainArtistContent(m model, width int, height int) string {
 		}
 
 		// Apply styling
-		if m.selectionArray[i] {
+		if m.selectionMap[i] {
 			row = selectionStyle.Render(row)
 		} else {
 			row = style.Render(row)

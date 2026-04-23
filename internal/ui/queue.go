@@ -125,13 +125,26 @@ func getSelectedSongs(m model) []api.Song {
 		case viewList:
 			switch m.displayMode {
 			case displaySongs:
-				return []api.Song{m.songs[m.cursorMain]}
+
+				if m.showSelection { // Add selection
+					var songs []api.Song
+					for i := range m.selectionMap {
+						songs = append(songs, m.songs[i])
+					}
+
+					return songs
+				} else { // Add single song
+					return []api.Song{m.songs[m.cursorMain]}
+				}
 
 			case displayAlbums:
-				songs, err := api.SubsonicGetAlbum(m.albums[m.cursorMain].ID)
+				var songs []api.Song
 
-				if err != nil {
-					return []api.Song{}
+				for i := range m.selectionMap {
+					albumSongs, err := api.SubsonicGetAlbum(m.albums[i].ID)
+					if err == nil {
+						songs = append(songs, albumSongs...)
+					}
 				}
 
 				songs = applyExclusionFilters(m, songs)
