@@ -88,13 +88,15 @@ func redactURL(rawUrl string) string {
 	return parsed.String()
 }
 
-func subsonicGET(endpoint string, params map[string]string) (*SubsonicResponse, error) {
+func subsonicGET(endpoint string, params url.Values) (*SubsonicResponse, error) {
 	baseUrl := AppServerConfig.Server.URL + "/rest" + endpoint
 
 	v := getAuthParams()
 
-	for key, value := range params {
-		v.Set(key, value)
+	for key, values := range params {
+		for _, value := range values {
+			v.Add(key, value)
+		}
 	}
 
 	fullUrl := baseUrl + "?" + v.Encode()
@@ -121,8 +123,8 @@ func subsonicGET(endpoint string, params map[string]string) (*SubsonicResponse, 
 }
 
 func SubsonicLoginCheck() error {
-	params := map[string]string{
-		"username": AppServerConfig.Server.Username,
+	params := url.Values{
+		"username": {AppServerConfig.Server.Username},
 	}
 
 	data, err := subsonicGET("/getUser", params)
@@ -145,14 +147,14 @@ func SubsonicLoginCheck() error {
 }
 
 func SubsonicSearchArtist(query string, offset int) ([]Artist, error) {
-	params := map[string]string{
-		"query":        query,
-		"artistCount":  "150",
-		"artistOffset": strconv.Itoa(offset),
-		"albumCount":   "0",
-		"albumOffset":  "0",
-		"songCount":    "0",
-		"songOffset":   "0",
+	params := url.Values{
+		"query":        {query},
+		"artistCount":  {"150"},
+		"artistOffset": {strconv.Itoa(offset)},
+		"albumCount":   {"0"},
+		"albumOffset":  {"0"},
+		"songCount":    {"0"},
+		"songOffset":   {"0"},
 	}
 
 	data, err := subsonicGET("/search3", params)
@@ -164,14 +166,14 @@ func SubsonicSearchArtist(query string, offset int) ([]Artist, error) {
 }
 
 func SubsonicSearchAlbum(query string, offset int) ([]Album, error) {
-	params := map[string]string{
-		"query":        query,
-		"artistCount":  "0",
-		"artistOffset": "0",
-		"albumCount":   "150",
-		"albumOffset":  strconv.Itoa(offset),
-		"songCount":    "0",
-		"songOffset":   "0",
+	params := url.Values{
+		"query":        {query},
+		"artistCount":  {"0"},
+		"artistOffset": {"0"},
+		"albumCount":   {"150"},
+		"albumOffset":  {strconv.Itoa(offset)},
+		"songCount":    {"0"},
+		"songOffset":   {"0"},
 	}
 
 	data, err := subsonicGET("/search3", params)
@@ -183,14 +185,14 @@ func SubsonicSearchAlbum(query string, offset int) ([]Album, error) {
 }
 
 func SubsonicSearchSong(query string, offset int) ([]Song, error) {
-	params := map[string]string{
-		"query":        query,
-		"artistCount":  "0",
-		"artistOffset": "0",
-		"albumCount":   "0",
-		"albumOffset":  "0",
-		"songCount":    "150",
-		"songOffset":   strconv.Itoa(offset),
+	params := url.Values{
+		"query":        {query},
+		"artistCount":  {"0"},
+		"artistOffset": {"0"},
+		"albumCount":   {"0"},
+		"albumOffset":  {"0"},
+		"songCount":    {"150"},
+		"songOffset":   {strconv.Itoa(offset)},
 	}
 
 	data, err := subsonicGET("/search3", params)
@@ -202,8 +204,8 @@ func SubsonicSearchSong(query string, offset int) ([]Song, error) {
 }
 
 func SubsonicGetPlaylistSongs(id string) ([]Song, error) {
-	params := map[string]string{
-		"id": id,
+	params := url.Values{
+		"id": {id},
 	}
 
 	data, err := subsonicGET("/getPlaylist", params)
@@ -215,7 +217,7 @@ func SubsonicGetPlaylistSongs(id string) ([]Song, error) {
 }
 
 func SubsonicGetPlaylists() ([]Playlist, error) {
-	params := map[string]string{}
+	params := url.Values{}
 
 	data, err := subsonicGET("/getPlaylists", params)
 	if err != nil {
@@ -226,8 +228,8 @@ func SubsonicGetPlaylists() ([]Playlist, error) {
 }
 
 func SubsonicGetAlbum(id string) ([]Song, error) {
-	params := map[string]string{
-		"id": id,
+	params := url.Values{
+		"id": {id},
 	}
 
 	data, err := subsonicGET("/getAlbum", params)
@@ -239,10 +241,10 @@ func SubsonicGetAlbum(id string) ([]Song, error) {
 }
 
 func SubsonicGetAlbumList(searchType string, offset int) ([]Album, error) {
-	params := map[string]string{
-		"type":   searchType,
-		"size":   "150",
-		"offset": strconv.Itoa(offset),
+	params := url.Values{
+		"type":   {searchType},
+		"size":   {"150"},
+		"offset": {strconv.Itoa(offset)},
 	}
 
 	data, err := subsonicGET("/getAlbumList", params)
@@ -254,8 +256,8 @@ func SubsonicGetAlbumList(searchType string, offset int) ([]Album, error) {
 }
 
 func SubsonicGetArtist(id string) ([]Album, error) {
-	params := map[string]string{
-		"id": id,
+	params := url.Values{
+		"id": {id},
 	}
 
 	data, err := subsonicGET("/getArtist", params)
@@ -267,44 +269,21 @@ func SubsonicGetArtist(id string) ([]Album, error) {
 }
 
 func SubsonicStar(ids []string) {
-	baseUrl := AppServerConfig.Server.URL + "/rest/star"
-
-	v := getAuthParams()
+	params := url.Values{}
 	for _, id := range ids {
-		v.Add("id", id)
+		params.Add("id", id)
 	}
 
-	url := baseUrl + "?" + v.Encode()
-
-	log.Printf("[API] Request: %s", redactURL(url))
-	resp, err := httpClient.Get(url)
-	if err != nil {
-		log.Printf("[API] Failed to star: %v", err)
-		return
-	}
-
-	defer func() { _ = resp.Body.Close() }()
-
+	_, _ = subsonicGET("/star", params)
 }
 
 func SubsonicUnstar(ids []string) {
-	baseUrl := AppServerConfig.Server.URL + "/rest/unstar"
-
-	v := getAuthParams()
+	params := url.Values{}
 	for _, id := range ids {
-		v.Add("id", id)
+		params.Add("id", id)
 	}
 
-	url := baseUrl + "?" + v.Encode()
-
-	log.Printf("[API] Request: %s", redactURL(url))
-	resp, err := httpClient.Get(url)
-	if err != nil {
-		log.Printf("[API] Failed to star: %v", err)
-		return
-	}
-
-	defer func() { _ = resp.Body.Close() }()
+	_, _ = subsonicGET("/unstar", params)
 }
 
 func SubsonicGetStarred() (*SearchResult3, error) {
@@ -321,9 +300,9 @@ func SubsonicGetStarred() (*SearchResult3, error) {
 }
 
 func SubsonicRate(ID string, rating int) {
-	params := map[string]string{
-		"id":     ID,
-		"rating": strconv.Itoa(rating),
+	params := url.Values{
+		"id":     {ID},
+		"rating": {strconv.Itoa(rating)},
 	}
 
 	_, _ = subsonicGET("/setRating", params)
@@ -345,10 +324,10 @@ func SubsonicStream(id string) string {
 func SubsonicScrobble(id string, submission bool) {
 	time := strconv.FormatInt(time.Now().UTC().UnixMilli(), 10)
 
-	params := map[string]string{
-		"id":         id,
-		"time":       time,
-		"submission": strconv.FormatBool(submission),
+	params := url.Values{
+		"id":         {id},
+		"time":       {time},
+		"submission": {strconv.FormatBool(submission)},
 	}
 
 	_, _ = subsonicGET("/scrobble", params)
@@ -386,29 +365,19 @@ func SubsonicCoverArt(id string, size int) ([]byte, error) {
 }
 
 func SubsonicSaveQueue(ids []string, currentID string) {
-	baseUrl := AppServerConfig.Server.URL + "/rest/savePlayQueue"
+	params := url.Values{
+		"current": {currentID},
+	}
 
-	v := getAuthParams()
-
-	v.Set("current", currentID)
 	for _, id := range ids {
-		v.Add("id", id)
+		params.Add("id", id)
 	}
 
-	url := baseUrl + "?" + v.Encode()
-
-	log.Printf("[API] Request: %s", redactURL(url))
-	resp, err := httpClient.Get(url)
-	if err != nil {
-		log.Printf("[API] Failed to save queue: %v", err)
-		return
-	}
-
-	defer func() { _ = resp.Body.Close() }()
+	_, _ = subsonicGET("/savePlayQueue", params)
 }
 
 func SubsonicGetQueue() (*PlayQueue, error) {
-	params := map[string]string{}
+	params := url.Values{}
 
 	data, err := subsonicGET("/getPlayQueue", params)
 	if err != nil {
@@ -419,61 +388,36 @@ func SubsonicGetQueue() (*PlayQueue, error) {
 }
 
 func SubsonicAddToPlaylist(playlistID string, songIds []string) {
-	baseUrl := AppServerConfig.Server.URL + "/rest/updatePlaylist"
-
-	v := getAuthParams()
-	v.Set("playlistId", playlistID)
-	log.Printf("Playlist add: %s", playlistID)
+	params := url.Values{
+		"playlistId": {playlistID},
+	}
 
 	for _, id := range songIds {
-		v.Add("songIdToAdd", id)
-		log.Printf("Song to add: %s", id)
+		params.Add("id", id)
 	}
 
-	url := baseUrl + "?" + v.Encode()
-
-	log.Printf("[API] Request: %s", redactURL(url))
-	resp, err := httpClient.Get(url)
-	if err != nil {
-		log.Printf("[API] Failed to update playlist: %v", err)
-		return
-	}
-
-	defer func() { _ = resp.Body.Close() }()
+	_, _ = subsonicGET("/updatePlaylist", params)
 }
 
 func SubsonicCreateShare(ids []string) (string, error) {
-	baseUrl := AppServerConfig.Server.URL + "/rest/createShare"
+	params := url.Values{}
 
-	v := getAuthParams()
 	for _, id := range ids {
-		v.Add("id", id)
+		params.Add("id", id)
 	}
 
-	url := baseUrl + "?" + v.Encode()
-
-	log.Printf("[API] Request: %s", redactURL(url))
-	resp, err := httpClient.Get(url)
+	data, err := subsonicGET("/createShare", params)
 	if err != nil {
-		log.Printf("[API] API Error in CreateShare: %v", err)
-		return "", err
+		log.Printf("[ERROR] API Error in CreateShare: %s", err)
 	}
 
-	defer func() { _ = resp.Body.Close() }()
-
-	var result SubsonicResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", err
-	}
-
-	shareUrl := result.Response.Shares.ShareList[0].URL
-	return shareUrl, nil
+	return data.Response.Shares.ShareList[0].URL, nil
 
 }
 
 func SubsonicGetLyrics(ID string) ([]StructuredLyrics, error) {
-	params := map[string]string{
-		"id": ID,
+	params := url.Values{
+		"id": {ID},
 	}
 
 	data, err := subsonicGET("/getLyricsBySongId", params)
