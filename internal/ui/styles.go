@@ -28,6 +28,7 @@ var (
 	cursorStyle          lipgloss.Style
 	cursorFocusedStyle   lipgloss.Style
 	currentPlaySongStyle lipgloss.Style
+	selectionStyle       lipgloss.Style
 )
 
 func checkColors(colors []string) lipgloss.AdaptiveColor {
@@ -108,4 +109,9 @@ func InitStyles() {
 	// Current playing song
 	currentPlaySongStyle = lipgloss.NewStyle().
 		Foreground(Theme.Special)
+
+	// Selection Style
+	selectionStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#000000")).
+		Background(lipgloss.Color("#a8a8a8"))
 }

@@ -133,14 +133,15 @@ type GlobalKeybinds struct {
 }
 
 type NavigationKeybinds struct {
-	Up             []string `toml:"up"`
-	Down           []string `toml:"down"`
-	Top            []string `toml:"top"`
-	Bottom         []string `toml:"bottom"`
-	Select         []string `toml:"select"`
-	PlayShuffled   []string `toml:"play_shuffled"`
-	GoHalfPageUp   []string `toml:"go_half_page_up"`
-	GoHalfPageDown []string `toml:"go_half_page_down"`
+	Up              []string `toml:"up"`
+	Down            []string `toml:"down"`
+	Top             []string `toml:"top"`
+	Bottom          []string `toml:"bottom"`
+	Select          []string `toml:"select"`
+	ToggleSelection []string `toml:"toggle_selection"`
+	PlayShuffled    []string `toml:"play_shuffled"`
+	GoHalfPageUp    []string `toml:"go_half_page_up"`
+	GoHalfPageDown  []string `toml:"go_half_page_down"`
 }
 
 type SearchKeybinds struct {

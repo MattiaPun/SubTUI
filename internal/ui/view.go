@@ -407,7 +407,11 @@ func mainSongsContent(m model, width int, height int) string {
 		}
 
 		// Apply styling
-		row = style.Render(row)
+		if m.selectionArray[i] {
+			row = selectionStyle.Render(row)
+		} else {
+			row = style.Render(row)
+		}
 
 		// Add zone ID
 		zoneId = fmt.Sprintf("mainview_item_%d", i)
@@ -478,7 +482,11 @@ func mainAlbumsContent(m model, width int, height int) string {
 		}
 
 		// Apply styling
-		row = style.Render(row)
+		if m.selectionArray[i] {
+			row = selectionStyle.Render(row)
+		} else {
+			row = style.Render(row)
+		}
 
 		// Add zone ID
 		zoneId = fmt.Sprintf("mainview_item_%d", i)
@@ -549,7 +557,11 @@ func mainArtistContent(m model, width int, height int) string {
 		}
 
 		// Apply styling
-		row = style.Render(row)
+		if m.selectionArray[i] {
+			row = selectionStyle.Render(row)
+		} else {
+			row = style.Render(row)
+		}
 
 		// Add zone ID
 		zoneId = fmt.Sprintf("mainview_item_%d", i)
@@ -1127,6 +1139,7 @@ func helpViewContent() string {
 		line(keys(api.AppConfig.Keybinds.Navigation.Top), "Go to top"),
 		line(keys(api.AppConfig.Keybinds.Navigation.Bottom), "Go to bottom"),
 		line(keys(api.AppConfig.Keybinds.Navigation.Select), "Select"),
+		line(keys(api.AppConfig.Keybinds.Navigation.ToggleSelection), "Toggle Selection"),
 		line(keys(api.AppConfig.Keybinds.Navigation.PlayShuffled), "Start shuffled"),
 		line(keys(api.AppConfig.Keybinds.Navigation.GoHalfPageUp), "Go half page up"),
 		line(keys(api.AppConfig.Keybinds.Navigation.GoHalfPageDown), "Go half page down"),

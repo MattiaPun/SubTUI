@@ -110,6 +110,10 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return enter(m)
 	}
 
+	if keyMatches(key, api.AppConfig.Keybinds.Navigation.ToggleSelection) {
+		return toggleSelection(m)
+	}
+
 	if keyMatches(key, api.AppConfig.Keybinds.Navigation.PlayShuffled) {
 		return playShuffled(m)
 	}
@@ -442,6 +446,21 @@ func enter(m model) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+func toggleSelection(m model) (tea.Model, tea.Cmd) {
+	if m.showSelection {
+		m.showSelection = false
+		m.selectionAnchor = -1
+	} else {
+		m.showSelection = true
+		m.selectionAnchor = m.cursorMain
+	}
+
+	// Clear map
+	m.selectionArray = make(map[int]bool)
+
+	return m, nil
+}
+
 func playShuffled(m model) (tea.Model, tea.Cmd) {
 	switch m.focus {
 	case focusMain:
@@ -515,6 +534,11 @@ func navigateTop(m model) model {
 	case focusMain:
 		m.cursorMain = 0
 		m.mainOffset = 0
+
+		if m.showSelection {
+			m = selectionScroller(m)
+		}
+
 	case focusSidebar:
 		m.cursorSide = 0
 		m.sideOffset = 0
@@ -547,6 +571,10 @@ func navigateBottom(m model) (model, tea.Cmd) {
 			m.mainOffset = listLen - 17
 		} else {
 			m.mainOffset = 0
+		}
+
+		if m.showSelection {
+			m = selectionScroller(m)
 		}
 
 	case focusSidebar:
@@ -590,6 +618,11 @@ func navigateUp(m model, steps int) model {
 		if m.cursorMain < m.mainOffset {
 			m.mainOffset = m.cursorMain
 		}
+
+		if m.showSelection {
+			m = selectionScroller(m)
+		}
+
 	case focusSidebar:
 		m.cursorSide -= steps
 		if m.cursorSide < 0 {
@@ -619,44 +652,55 @@ func navigateDown(m model, steps int) (model, tea.Cmd) {
 	}
 
 	albumOffset := len(albumTypes)
-	if m.focus == focusMain && m.cursorMain < listLen-1 {
-		m.cursorMain += steps
 
-		if m.cursorMain > listLen-1 {
-			m.cursorMain = listLen - 1
+	switch m.focus {
+	case focusMain:
+		if m.cursorMain < listLen-1 {
+			m.cursorMain += steps
+
+			if m.cursorMain > listLen-1 {
+				m.cursorMain = listLen - 1
+			}
+
+			// Height - Search(3) - Footer(6) - Margins(4) - TableHeader(2) = 17
+			visibleRows := m.height - 17
+			if m.cursorMain >= m.mainOffset+visibleRows {
+				m.mainOffset = m.cursorMain - visibleRows + 1
+			}
 		}
 
-		// Height - Search(3) - Footer(6) - Margins(4) - TableHeader(2) = 17
-		visibleRows := m.height - 17
-		if m.cursorMain >= m.mainOffset+visibleRows {
-			m.mainOffset = m.cursorMain - visibleRows + 1
-		}
-	} else if m.focus == focusSidebar && m.cursorSide < len(m.playlists)+albumOffset-1 { // + because of the Album offset
-		m.cursorSide += steps
-
-		if m.cursorSide > len(m.playlists)+albumOffset-1 {
-			m.cursorSide = len(m.playlists) + albumOffset - 1
+		if m.showSelection {
+			m = selectionScroller(m)
 		}
 
-		headerHeight := 1
+	case focusSidebar:
+		if m.cursorSide < len(m.playlists)+albumOffset-1 { // + because of the Album offset
+			m.cursorSide += steps
 
-		footerHeight := int(float64(m.height) * 0.10)
-		if footerHeight < 5 {
-			footerHeight = 5
-		}
+			if m.cursorSide > len(m.playlists)+albumOffset-1 {
+				m.cursorSide = len(m.playlists) + albumOffset - 1
+			}
 
-		mainHeight := m.height - headerHeight - footerHeight - (3 * 2) // 3 sections with each 2 borders (top and bottom)
-		if mainHeight < 0 {
-			mainHeight = 0
-		}
+			headerHeight := 1
 
-		visibleRows := mainHeight - 6 // Conservative estimate for headers
-		if visibleRows < 1 {
-			visibleRows = 1
-		}
+			footerHeight := int(float64(m.height) * 0.10)
+			if footerHeight < 5 {
+				footerHeight = 5
+			}
 
-		if m.cursorSide >= m.sideOffset+visibleRows {
-			m.sideOffset = m.cursorSide - visibleRows + 1
+			mainHeight := m.height - headerHeight - footerHeight - (3 * 2) // 3 sections with each 2 borders (top and bottom)
+			if mainHeight < 0 {
+				mainHeight = 0
+			}
+
+			visibleRows := mainHeight - 6 // Conservative estimate for headers
+			if visibleRows < 1 {
+				visibleRows = 1
+			}
+
+			if m.cursorSide >= m.sideOffset+visibleRows {
+				m.sideOffset = m.cursorSide - visibleRows + 1
+			}
 		}
 	}
 
@@ -1613,6 +1657,7 @@ func loadMore(m model) (model, tea.Cmd) {
 	return m, nil
 }
 
+// Helper for checking if the cursor in bounds
 func cursorInBounds(m model) bool {
 	switch m.displayMode {
 	case displaySongs:
@@ -1632,4 +1677,25 @@ func cursorInBounds(m model) bool {
 	}
 
 	return false
+}
+
+func selectionScroller(m model) model {
+	if m.showSelection {
+		start := m.selectionAnchor
+		end := m.cursorMain
+
+		// Swap if scrolling up
+		if start > end {
+			start, end = end, start
+		}
+
+		// Clear selection
+		m.selectionArray = make(map[int]bool)
+
+		// Select everything in range
+		for i := start; i <= end; i++ {
+			m.selectionArray[i] = true
+		}
+	}
+	return m
 }
