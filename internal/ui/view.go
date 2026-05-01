@@ -254,7 +254,10 @@ func sidebarContent(m model, mainHeight int, sidebarWidth int) string {
 	content := ""
 	currentLine := 0
 
-	totalItems := len(albumTypes) + len(m.playlists)
+	totalItems := len(songTypes) + len(albumTypes) + len(m.playlists)
+	albumsOffset := albumsSectionOffset()
+	songsOffset := songsSectionOffset()
+	playlistsOffset := playlistsSectionOffset()
 
 	for i := m.sideOffset; i < totalItems; i++ {
 		// Stop if run out of space - 1
@@ -263,16 +266,37 @@ func sidebarContent(m model, mainHeight int, sidebarWidth int) string {
 		}
 
 		// Handle Headers
-		if i == 0 {
+		if i == albumsOffset {
 			header := lipgloss.NewStyle().Bold(true).Render("  ALBUMS")
-			if currentLine+2 <= mainHeight-1 {
-				content += header + "\n\n"
-				currentLine += 2
+			if i == m.sideOffset {
+				if currentLine+2 <= mainHeight-1 {
+					content += header + "\n\n"
+					currentLine += 2
+				} else {
+					break
+				}
+			} else if currentLine+3 <= mainHeight-1 {
+				content += "\n" + header + "\n\n"
+				currentLine += 3
 			} else {
-				// Not enough space for header + spacing
 				break
 			}
-		} else if i == len(albumTypes) {
+		} else if i == songsOffset {
+			header := lipgloss.NewStyle().Bold(true).Render("  SONGS")
+			if i == m.sideOffset {
+				if currentLine+2 <= mainHeight-1 {
+					content += header + "\n\n"
+					currentLine += 2
+				} else {
+					break
+				}
+			} else if currentLine+3 <= mainHeight-1 {
+				content += "\n" + header + "\n\n"
+				currentLine += 3
+			} else {
+				break
+			}
+		} else if i == playlistsOffset {
 			header := lipgloss.NewStyle().Bold(true).Render("  PLAYLISTS")
 
 			// If at top of view, use less padding above
@@ -301,10 +325,12 @@ func sidebarContent(m model, mainHeight int, sidebarWidth int) string {
 
 		// Item Logic
 		var name string
-		if i < len(albumTypes) {
+		if i < songsOffset {
 			name = albumTypes[i]
+		} else if i < playlistsOffset {
+			name = songTypes[i-songsOffset]
 		} else {
-			name = m.playlists[i-len(albumTypes)].Name
+			name = m.playlists[i-playlistsOffset].Name
 		}
 
 		cursor := "  "

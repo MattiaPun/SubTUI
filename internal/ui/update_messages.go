@@ -78,7 +78,7 @@ func (m model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		m.focus = focusSidebar
 		m.textInput.Blur()
 
-		totalItems := len(albumTypes) + len(m.playlists)
+		totalItems := len(songTypes) + len(albumTypes) + len(m.playlists)
 		endIndex := m.sideOffset + mainHeight
 		if endIndex > totalItems {
 			endIndex = totalItems
@@ -390,14 +390,14 @@ func (m model) handleSongResult(msg songsResultMsg) (tea.Model, tea.Cmd) {
 	songs := applyExclusionFilters(m, msg.songs)
 
 	if m.pageOffset > 0 { // Append: paging
-		m.songs = append(m.songs, msg.songs...)
+		m.songs = append(m.songs, songs...)
 	} else { // Replace: no paging
 		m.songs = songs
 		m.cursorMain = 0
 		m.mainOffset = 0
 	}
 
-	m.pageHasMore = (len(songs) == 150)
+	m.pageHasMore = msg.hasMore
 
 	return m, nil
 }

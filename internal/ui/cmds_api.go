@@ -32,7 +32,7 @@ func searchCmd(query string, mode int, offset int) tea.Cmd {
 			if err != nil {
 				return errMsg{err}
 			}
-			return songsResultMsg{songs}
+			return songsResultMsg{songs: songs, hasMore: len(songs) == 150}
 
 		case filterAlbums:
 			albums, err := api.SubsonicSearchAlbum(query, offset)
@@ -63,8 +63,43 @@ func getAlbumSongs(albumID string, shuffled bool) tea.Cmd {
 		if shuffled {
 			return shuffledSongsMsg{songs, false}
 		} else {
-			return songsResultMsg{songs}
+			return songsResultMsg{songs: songs, hasMore: false}
 		}
+	}
+}
+
+func getAllSongs(offset int, shuffled bool) tea.Cmd {
+	return func() tea.Msg {
+		if shuffled {
+			songs, err := api.SubsonicGetAllSongs()
+			if err != nil {
+				return errMsg{err}
+			}
+
+			return shuffledSongsMsg{songs, true}
+		}
+
+		songs, hasMore, err := api.SubsonicGetAllSongsPage(offset)
+		if err != nil {
+			return errMsg{err}
+		}
+
+		return songsResultMsg{songs: songs, hasMore: hasMore}
+	}
+}
+
+func getRandomSongs(shuffled bool) tea.Cmd {
+	return func() tea.Msg {
+		songs, err := api.SubsonicGetRandomSongs(150)
+		if err != nil {
+			return errMsg{err}
+		}
+
+		if shuffled {
+			return shuffledSongsMsg{songs, true}
+		}
+
+		return songsResultMsg{songs: songs, hasMore: false}
 	}
 }
 
@@ -108,7 +143,7 @@ func getPlaylistSongs(id string, shuffled bool) tea.Cmd {
 		if shuffled {
 			return shuffledSongsMsg{songs, true}
 		} else {
-			return songsResultMsg{songs}
+			return songsResultMsg{songs: songs, hasMore: false}
 		}
 	}
 }

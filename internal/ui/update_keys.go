@@ -324,6 +324,7 @@ func enter(m model) (tea.Model, tea.Cmd) {
 			m.pageOffset = 0
 			m.pageHasMore = true
 			m.lastSearchQuery = query
+			m.songListType = ""
 
 			// Reset selection
 			m = resetSelection(m)
@@ -331,6 +332,7 @@ func enter(m model) (tea.Model, tea.Cmd) {
 			switch m.filterMode {
 			case filterSongs:
 				m.displayMode = displaySongs
+				m.songListType = "search"
 			case filterAlbums:
 				m.displayMode = displayAlbums
 			case filterArtist:
@@ -369,6 +371,7 @@ func enter(m model) (tea.Model, tea.Cmd) {
 					m.pageOffset = 0
 					m.pageHasMore = true
 					m.lastSearchQuery = ""
+					m.songListType = ""
 
 					// Reset selection
 					m = resetSelection(m)
@@ -396,6 +399,7 @@ func enter(m model) (tea.Model, tea.Cmd) {
 					m.pageOffset = 0
 					m.pageHasMore = true
 					m.lastSearchQuery = ""
+					m.songListType = ""
 
 					// Reset selection
 					m = resetSelection(m)
@@ -411,7 +415,9 @@ func enter(m model) (tea.Model, tea.Cmd) {
 		}
 
 	case focusSidebar:
-		albumOffset := len(albumTypes)
+		albumsOffset := albumsSectionOffset()
+		songsOffset := songsSectionOffset()
+		playlistsOffset := playlistsSectionOffset()
 
 		m.loading = true
 		m.focus = focusMain
@@ -420,13 +426,14 @@ func enter(m model) (tea.Model, tea.Cmd) {
 		// Reset selection
 		m = resetSelection(m)
 
-		if m.cursorSide < albumOffset {
+		if m.cursorSide < songsOffset {
 			m.displayMode = displayAlbums
 			// Initialize pagination state
 			m.pageOffset = 0
 			m.pageHasMore = true
 			m.lastSearchQuery = ""
-			switch m.cursorSide {
+			m.songListType = ""
+			switch m.cursorSide - albumsOffset {
 			case 0:
 				m.albumListType = "alphabeticalByArtist"
 				return m, getAlbumList("alphabeticalByArtist", 0)
@@ -446,10 +453,26 @@ func enter(m model) (tea.Model, tea.Cmd) {
 				m.albumListType = "frequent"
 				return m, getAlbumList("frequent", 0)
 			}
+		}
 
+		if m.cursorSide < playlistsOffset {
+			m.displayMode = displaySongs
+			m.pageOffset = 0
+			m.pageHasMore = true
+			m.lastSearchQuery = ""
+			switch m.cursorSide - songsOffset {
+			case 0:
+				m.songListType = "all"
+				return m, getAllSongs(0, false)
+			case 1:
+				m.songListType = "random"
+				m.pageHasMore = false
+				return m, getRandomSongs(false)
+			}
 		} else {
 			m.displayMode = displaySongs
-			return m, getPlaylistSongs((m.playlists[m.cursorSide-albumOffset]).ID, false) // - because of the Album offset
+			m.songListType = ""
+			return m, getPlaylistSongs((m.playlists[m.cursorSide-playlistsOffset]).ID, false)
 
 		}
 
@@ -485,12 +508,30 @@ func playShuffled(m model) (tea.Model, tea.Cmd) {
 		}
 
 	case focusSidebar:
-		if m.cursorSide > (len(albumTypes)-1) && (m.playlists[m.cursorSide-len(albumTypes)]).ID != "" {
+		songsOffset := songsSectionOffset()
+		playlistsOffset := playlistsSectionOffset()
+
+		if m.cursorSide >= songsOffset && m.cursorSide < playlistsOffset {
 			m.loading = true
 			m.displayMode = displaySongs
 			m.focus = focusMain
+			switch m.cursorSide - songsOffset {
+			case 0:
+				m.songListType = "all"
+				return m, getAllSongs(0, true)
+			case 1:
+				m.songListType = "random"
+				return m, getRandomSongs(true)
+			}
+		}
 
-			return m, getPlaylistSongs((m.playlists[m.cursorSide-len(albumTypes)]).ID, true)
+		if m.cursorSide >= playlistsOffset && (m.playlists[m.cursorSide-playlistsOffset]).ID != "" {
+			m.loading = true
+			m.displayMode = displaySongs
+			m.focus = focusMain
+			m.songListType = ""
+
+			return m, getPlaylistSongs((m.playlists[m.cursorSide-playlistsOffset]).ID, true)
 		}
 	}
 
@@ -592,7 +633,7 @@ func navigateBottom(m model) (model, tea.Cmd) {
 		}
 
 	case focusSidebar:
-		total := len(albumTypes) + len(m.playlists)
+		total := len(songTypes) + len(albumTypes) + len(m.playlists)
 		m.cursorSide = total - 1
 
 		headerHeight := 1
@@ -665,7 +706,7 @@ func navigateDown(m model, steps int) (model, tea.Cmd) {
 		listLen = len(m.artists)
 	}
 
-	albumOffset := len(albumTypes)
+	playlistsOffset := playlistsSectionOffset()
 
 	switch m.focus {
 	case focusMain:
@@ -688,11 +729,11 @@ func navigateDown(m model, steps int) (model, tea.Cmd) {
 		}
 
 	case focusSidebar:
-		if m.cursorSide < len(m.playlists)+albumOffset-1 { // + because of the Album offset
+		if m.cursorSide < playlistsOffset+len(m.playlists)-1 {
 			m.cursorSide += steps
 
-			if m.cursorSide > len(m.playlists)+albumOffset-1 {
-				m.cursorSide = len(m.playlists) + albumOffset - 1
+			if m.cursorSide > playlistsOffset+len(m.playlists)-1 {
+				m.cursorSide = playlistsOffset + len(m.playlists) - 1
 			}
 
 			headerHeight := 1
@@ -760,6 +801,7 @@ func displayAlbumFromSelected(m model) (tea.Model, tea.Cmd) {
 	m.cursorMain = 0
 	m.mainOffset = 0
 	m.lastSearchQuery = ""
+	m.songListType = ""
 
 	return m, getAlbumSongs(id, false)
 }
@@ -814,6 +856,7 @@ func displayArtistFromSelected(m model) (tea.Model, tea.Cmd) {
 	m.cursorMain = 0
 	m.mainOffset = 0
 	m.lastSearchQuery = ""
+	m.songListType = ""
 
 	return m, getArtistAlbums(id)
 }
@@ -1812,10 +1855,18 @@ func setRating(m model, rating int) (model, tea.Cmd) {
 func loadMore(m model) (model, tea.Cmd) {
 	if m.focus == focusMain && m.pageHasMore && !m.loading {
 		// Songs
-		if m.displayMode == displaySongs && len(m.songs)-m.cursorMain <= 10 && m.lastSearchQuery != "" {
-			m.loading = true
-			m.pageOffset += 150
-			return m, searchCmd(m.lastSearchQuery, filterSongs, m.pageOffset)
+		if m.displayMode == displaySongs && len(m.songs)-m.cursorMain <= 10 {
+			if m.songListType == "search" && m.lastSearchQuery != "" {
+				m.loading = true
+				m.pageOffset += 150
+				return m, searchCmd(m.lastSearchQuery, filterSongs, m.pageOffset)
+			}
+
+			if m.songListType == "all" {
+				m.loading = true
+				m.pageOffset += allSongsSidebarPageSize
+				return m, getAllSongs(m.pageOffset, false)
+			}
 		}
 
 		// Albums

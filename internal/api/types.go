@@ -27,6 +27,9 @@ type SubsonicResponse struct {
 		AlbumList struct {
 			Albums []Album `json:"album"`
 		} `json:"albumList"`
+		RandomSongs struct {
+			Songs []Song `json:"song"`
+		} `json:"randomSongs"`
 		Artist struct {
 			Albums []Album `json:"album"`
 		} `json:"artist"`

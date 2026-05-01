@@ -255,6 +255,67 @@ func SubsonicGetAlbumList(searchType string, offset int) ([]Album, error) {
 	return data.Response.AlbumList.Albums, nil
 }
 
+const allSongsAlbumPageSize = 50
+
+func SubsonicGetAllSongsPage(offset int) ([]Song, bool, error) {
+	params := url.Values{
+		"type":   {"alphabeticalByArtist"},
+		"size":   {strconv.Itoa(allSongsAlbumPageSize)},
+		"offset": {strconv.Itoa(offset)},
+	}
+
+	data, err := subsonicGET("/getAlbumList", params)
+	if err != nil {
+		return nil, false, err
+	}
+
+	albums := data.Response.AlbumList.Albums
+	songs := make([]Song, 0)
+
+	for _, album := range albums {
+		albumSongs, err := SubsonicGetAlbum(album.ID)
+		if err != nil {
+			return nil, false, err
+		}
+
+		songs = append(songs, albumSongs...)
+	}
+
+	return songs, len(albums) == allSongsAlbumPageSize, nil
+}
+
+func SubsonicGetAllSongs() ([]Song, error) {
+	var songs []Song
+
+	for offset := 0; ; offset += allSongsAlbumPageSize {
+		pageSongs, hasMore, err := SubsonicGetAllSongsPage(offset)
+		if err != nil {
+			return nil, err
+		}
+
+		songs = append(songs, pageSongs...)
+
+		if !hasMore {
+			break
+		}
+	}
+
+	return songs, nil
+}
+
+func SubsonicGetRandomSongs(size int) ([]Song, error) {
+	params := url.Values{
+		"size": {strconv.Itoa(size)},
+	}
+
+	data, err := subsonicGET("/getRandomSongs", params)
+	if err != nil {
+		return nil, err
+	}
+
+	return data.Response.RandomSongs.Songs, nil
+}
+
 func SubsonicGetArtist(id string) ([]Album, error) {
 	params := url.Values{
 		"id": {id},

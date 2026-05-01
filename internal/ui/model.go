@@ -11,7 +11,22 @@ import (
 	"github.com/charmbracelet/x/mosaic"
 )
 
+var songTypes = []string{"All", "Random"}
 var albumTypes = []string{"All", "Random", "Favorites", "Recently Added", "Recently Played", "Most Played"}
+
+const allSongsSidebarPageSize = 50
+
+func songsSectionOffset() int {
+	return len(albumTypes)
+}
+
+func albumsSectionOffset() int {
+	return 0
+}
+
+func playlistsSectionOffset() int {
+	return len(albumTypes) + len(songTypes)
+}
 
 // --- MODEL ---
 type model struct {
@@ -87,6 +102,7 @@ type model struct {
 
 	// Pagination State
 	lastSearchQuery string
+	songListType    string
 	albumListType   string
 	pageOffset      int
 	pageHasMore     bool
@@ -123,7 +139,8 @@ type loginResultMsg struct {
 }
 
 type songsResultMsg struct {
-	songs []api.Song
+	songs   []api.Song
+	hasMore bool
 }
 
 type albumsResultMsg struct {
