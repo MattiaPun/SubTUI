@@ -97,8 +97,6 @@ func PlaySong(songID string, startPaused bool) error {
 		return err
 	}
 
-	api.SubsonicScrobble(songID, false)
-
 	_ = mpvClient.SetProperty("pause", startPaused)
 
 	return nil

@@ -312,6 +312,9 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 		m.lastPlayedSongPath = m.playerStatus.Path // Update previous song
 		m.scrobbled = false                        // Reset scrobble status
 
+		// Update current scroble (just the playing now, not a submission)
+		go api.SubsonicScrobble(currentSong.ID, false)
+
 		// Setup metadata
 		metadata := integration.Metadata{
 			Title:    currentSong.Title,
