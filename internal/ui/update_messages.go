@@ -259,6 +259,7 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 	cmds = append(cmds, syncPlayerCmd())
 
 	if m.dbusInstance != nil {
+		m.dbusInstance.UpdatePosition(int64(m.playerStatus.Current * 1_000_000))
 		if m.playerStatus.Paused {
 			m.dbusInstance.UpdateStatus("Paused")
 		} else {

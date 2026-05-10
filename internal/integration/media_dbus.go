@@ -77,6 +77,14 @@ func (ins *Instance) UpdateStatus(status string) {
 	_ = ins.props.Set("org.mpris.MediaPlayer2.Player", "PlaybackStatus", dbus.MakeVariant(string(status)))
 }
 
+func (ins *Instance) UpdatePosition(position int64) {
+	if ins == nil {
+		return
+	}
+
+	_ = ins.props.Set("org.mpris.MediaPlayer2.Player", "Position", dbus.MakeVariant(position))
+}
+
 func (ins *Instance) UpdateMetadata(meta Metadata) {
 	if ins == nil {
 		return
