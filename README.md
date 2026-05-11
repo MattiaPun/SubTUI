@@ -30,6 +30,7 @@ Pre-compiled binaries for Linux and macOS are available on the [Releases](https:
 | **macOS (Homebrew)** 	| `brew install MattiaPun/subtui/subtui`                                         	|
 | **FreeBSD**          	| `pkg install subtui`                                                           	|
 | **Nix**              	| `nix profile install github:MattiaPun/SubTUI`                                  	|
+| **Void Linux**        | `xbps-install SubTUI`                                                             |
 | **Go Toolchain**     	| `go install github.com/MattiaPun/SubTUI@latest`                                	|
 | **From Source**      	| `git clone https://github.com/MattiaPun/SubTUI.git && cd SubTUI && go build .` 	|
 
