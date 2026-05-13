@@ -22,6 +22,9 @@ type PlayPauseMsg struct{}
 type StopMsg struct{}
 type NextSongMsg struct{}
 type PreviousSongMsg struct{}
+type SetPositionMsg struct {
+	Position int64
+}
 
 func (m Metadata) LengthInMicroseconds() int64 {
 	return int64(m.Duration * 1000000)

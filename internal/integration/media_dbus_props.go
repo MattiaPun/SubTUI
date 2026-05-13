@@ -28,7 +28,7 @@ var playerProps = map[string]*prop.Prop{
 	"CanGoPrevious":  newProp(true, nil),
 	"CanPlay":        newProp(true, nil),
 	"CanPause":       newProp(true, nil),
-	"CanSeek":        newProp(false, nil),
+	"CanSeek":        newProp(true, nil),
 	"CanControl":     newProp(true, nil),
 }
 

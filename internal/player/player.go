@@ -155,6 +155,13 @@ func Forward10Seconds() {
 	_ = mpvClient.Seek(+10)
 }
 
+func SeekTo(seconds float64) {
+	if mpvClient == nil {
+		return
+	}
+	_ = mpvClient.SetProperty("time-pos", seconds)
+}
+
 func VolumeUp() {
 	newVolume := ((mpvClient.CurrentVolume() / volumeStep) + 1) * volumeStep
 	SetVolume(newVolume)

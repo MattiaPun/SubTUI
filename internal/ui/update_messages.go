@@ -549,6 +549,17 @@ func (m model) handleIntegrationPreviousSong(msg integration.PreviousSongMsg) (t
 	return mediaSongPrev(m, msg)
 }
 
+func (m model) handleIntegrationSetPosition(msg integration.SetPositionMsg) (tea.Model, tea.Cmd) {
+	seconds := float64(msg.Position) / 1000000.0
+	player.SeekTo(seconds)
+
+	if m.dbusInstance != nil {
+		m.dbusInstance.UpdatePosition(msg.Position)
+	}
+
+	return m, nil
+}
+
 func (m model) handleSetDiscord(msg SetDiscordMsg) (tea.Model, tea.Cmd) {
 	m.discordInstance = msg.Instance
 	return m, nil

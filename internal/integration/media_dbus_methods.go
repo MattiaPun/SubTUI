@@ -53,6 +53,13 @@ func (m *MediaPlayer2) Stop() *dbus.Error {
 	return nil
 }
 
+func (m *MediaPlayer2) SetPosition(trackId dbus.ObjectPath, position int64) *dbus.Error {
+	if m.Program != nil {
+		m.Program.Send(SetPositionMsg{Position: position})
+	}
+	return nil
+}
+
 func (m *MediaPlayer2) Quit() *dbus.Error {
 	if m.Program != nil {
 		m.Program.Quit()

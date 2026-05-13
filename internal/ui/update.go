@@ -76,6 +76,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case integration.PreviousSongMsg:
 		return m.handleIntegrationPreviousSong(msg)
 
+	case integration.SetPositionMsg:
+		return m.handleIntegrationSetPosition(msg)
+
 	case SetDiscordMsg:
 		return m.handleSetDiscord(msg)
 
