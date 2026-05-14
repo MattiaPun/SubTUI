@@ -21,18 +21,19 @@ You must have [mpv](https://mpv.io/) installed and available in your system `PAT
 
 Pre-compiled binaries for Linux and macOS are available on the [Releases](https://github.com/MattiaPun/SubTUI/releases) page.
 
-| Method               	| Command / Instructions                                                         	|
-|----------------------	|--------------------------------------------------------------------------------	|
-| **Debian / Ubuntu**  	| Download the `.deb` and run `sudo dpkg -i subtui_*.deb`                        	|
-| **Fedora / RHEL**    	| Download the `.rpm` and run `sudo rpm -i subtui_*.rpm`                         	|
-| **Alpine**           	| Download the `.apk` and run `sudo apk add --allow-untrusted ./subtui_*.apk`    	|
-| **Arch Linux (AUR)** 	| `yay -S subtui-git`                                                            	|
-| **macOS (Homebrew)** 	| `brew install MattiaPun/subtui/subtui`                                         	|
-| **FreeBSD**          	| `pkg install subtui`                                                           	|
-| **Nix**              	| `nix profile install github:MattiaPun/SubTUI`                                  	|
-| **Void Linux**        | `xbps-install SubTUI`                                                             |
-| **Go Toolchain**     	| `go install github.com/MattiaPun/SubTUI@latest`                                	|
-| **From Source**      	| `git clone https://github.com/MattiaPun/SubTUI.git && cd SubTUI && go build .` 	|
+| Method               	   | Command / Instructions                                                         	|
+|----------------------	   |--------------------------------------------------------------------------------	|
+| **Debian / Ubuntu**  	   | Download the `.deb` and run `sudo dpkg -i subtui_*.deb`                        	|
+| **Fedora / RHEL**    	   | Download the `.rpm` and run `sudo rpm -i subtui_*.rpm`                         	|
+| **Alpine**           	   | Download the `.apk` and run `sudo apk add --allow-untrusted ./subtui_*.apk`    	|
+| **Arch Linux (AUR)** 	   | `yay -S subtui-git`                                                            	|
+| **macOS (Homebrew)** 	   | `brew install MattiaPun/subtui/subtui`                                         	|
+| **FreeBSD**          	   | `pkg install subtui`                                                           	|
+| **Nix**              	   | `nix profile install github:MattiaPun/SubTUI`                                  	|
+| **Void Linux**           | `xbps-install SubTUI`                                                            |
+| **Gentoo Linux (GURU)**  | `eselect repository enable guru && emerge -av media-sound/subtui`                |
+| **Go Toolchain**     	   | `go install github.com/MattiaPun/SubTUI@latest`                                	|
+| **From Source**      	   | `git clone https://github.com/MattiaPun/SubTUI.git && cd SubTUI && go build .` 	|
 
 ## Documentation
 
