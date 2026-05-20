@@ -1603,6 +1603,10 @@ func playerMenu(m model, msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.showHelp = !m.showHelp
 		return m, nil
 	} else if m.showHelp {
+		if keyMatches(key, api.AppConfig.Keybinds.Global.Back) {
+			m.showHelp = false
+			return m, nil
+		}
 		return m, nil
 	}
 
