@@ -1599,14 +1599,15 @@ func login(m model, msg tea.KeyMsg) (model, tea.Cmd) {
 func playerMenu(m model, msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
 
+	// Toggle help overlay
 	if keyMatches(key, api.AppConfig.Keybinds.Global.Help) {
 		m.showHelp = !m.showHelp
 		return m, nil
-	} else if m.showHelp {
-		if keyMatches(key, api.AppConfig.Keybinds.Global.Back) {
-			m.showHelp = false
-			return m, nil
-		}
+	}
+
+	// Close help overlay
+	if keyMatches(key, api.AppConfig.Keybinds.Global.Back) && m.showHelp {
+		m.showHelp = false
 		return m, nil
 	}
 
