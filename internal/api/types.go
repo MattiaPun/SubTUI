@@ -108,6 +108,27 @@ type Song struct {
 	Filtered     bool
 }
 
+// Sort modes for songs inside a playlist
+const (
+	SongSortNone     = 0
+	SongSortTitle    = 1
+	SongSortArtist   = 2
+	SongSortAlbum    = 3
+	SongSortDuration = 4
+	SongSortRating   = 5
+	SongSortYear     = 6
+)
+
+var SongSortLabels = map[int]string{
+	SongSortNone:     "None",
+	SongSortTitle:    "Title",
+	SongSortArtist:   "Artist",
+	SongSortAlbum:    "Album",
+	SongSortDuration: "Duration",
+	SongSortRating:   "Rating",
+	SongSortYear:     "Year",
+}
+
 type Playlist struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`

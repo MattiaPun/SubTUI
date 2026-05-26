@@ -401,6 +401,9 @@ func (m model) handleSongResult(msg songsResultMsg) (tea.Model, tea.Cmd) {
 		m.mainOffset = 0
 	}
 
+	// Apply current sort mode
+	sortSongs(m.songs, m.songSortBy, m.songSortAsc)
+
 	m.pageHasMore = (len(songs) == 150)
 
 	return m, nil

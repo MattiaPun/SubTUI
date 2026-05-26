@@ -91,6 +91,10 @@ type model struct {
 	pageOffset      int
 	pageHasMore     bool
 
+	// Song sort mode (in a playlist)
+	songSortBy  int
+	songSortAsc bool
+
 	// Selection state
 	showSelection   bool
 	selectionAnchor int

@@ -343,6 +343,14 @@ func mainSongsContent(m model, width int, height int) string {
 	case viewList:
 		target = m.songs
 		headerTitle = "TITLE"
+		sortLabel := api.SongSortLabels[m.songSortBy]
+		if sortLabel != "" && sortLabel != "None" {
+			order := "↑"
+			if !m.songSortAsc {
+				order = "↓"
+			}
+			headerTitle = fmt.Sprintf("TITLE   [%s %s]", sortLabel, order)
+		}
 		emptyStatus = "\n  Use the search bar to find songs..."
 	case viewQueue:
 		target = m.queue
@@ -1202,6 +1210,8 @@ func helpViewContent() string {
 		line(keys(api.AppConfig.Keybinds.Library.AddRating), "Add rating"),
 		line(keys(api.AppConfig.Keybinds.Library.GoToAlbum), "Go to album"),
 		line(keys(api.AppConfig.Keybinds.Library.GoToArtist), "Go to artist"),
+		line(keys(api.AppConfig.Keybinds.Library.SortPlaylistSongs), "Sort playlist songs"),
+		line(keys(api.AppConfig.Keybinds.Library.ToggleSortDirection), "Toggle sort direction"),
 		line(keys(api.AppConfig.Keybinds.Library.Rate0), "Rate 0"),
 		line(keys(api.AppConfig.Keybinds.Library.Rate1), "Rate 1"),
 		line(keys(api.AppConfig.Keybinds.Library.Rate2), "Rate 2"),

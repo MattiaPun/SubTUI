@@ -3,6 +3,7 @@ package ui
 import (
 	"math/rand"
 	"strings"
+	"sort"
 
 	"github.com/MattiaPun/SubTUI/v2/internal/api"
 	"github.com/MattiaPun/SubTUI/v2/internal/integration"
@@ -162,6 +163,14 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	if keyMatches(key, api.AppConfig.Keybinds.Library.Rate5) {
 		return setRating(m, 5)
+	}
+
+	if keyMatches(key, api.AppConfig.Keybinds.Library.SortPlaylistSongs) {
+		return toggleSongSort(m), nil
+	}
+
+	if keyMatches(key, api.AppConfig.Keybinds.Library.ToggleSortDirection) {
+		return toggleSortDirection(m), nil
 	}
 
 	// MEDIA KEYBINDS
@@ -1320,6 +1329,62 @@ func mediaShowFavorites(m model, msg tea.Msg) (model, tea.Cmd) {
 	m.focus = focusMain
 
 	return m, openLikedSongsCmd()
+}
+
+func toggleSongSort(m model) model {
+	totalModes := 8
+	m.songSortBy = (m.songSortBy + 1) % totalModes
+
+	switch m.songSortBy {
+	case api.SongSortRating, api.SongSortDuration:
+		m.songSortAsc = false // high rating / longer duration first
+	default:
+		m.songSortAsc = true
+	}
+
+	sortSongs(m.songs, m.songSortBy, m.songSortAsc)
+	return m
+}
+
+func sortSongs(songs []api.Song, sortBy int, asc bool) {
+  if sortBy == api.SongSortNone {
+    return
+  }
+
+  sort.Slice(songs, func(i, j int) bool {
+    var cmp bool
+
+    switch sortBy {
+    case api.SongSortTitle:
+      cmp = songs[i].Title < songs[j].Title
+    case api.SongSortArtist:
+      cmp = songs[i].Artist < songs[j].Artist
+    case api.SongSortAlbum:
+      cmp = songs[i].Album < songs[j].Album
+    case api.SongSortDuration:
+      cmp = songs[i].Duration < songs[j].Duration
+    case api.SongSortRating:
+      cmp = songs[i].Rating < songs[j].Rating
+    case api.SongSortYear:
+      cmp = songs[i].Year < songs[j].Year
+    default:
+      return false
+    }
+
+    if asc {
+      return cmp
+    }
+    return !cmp
+  })
+}
+
+func toggleSortDirection(m model) model {
+	if m.songSortBy == api.SongSortNone {
+		return m
+	}
+	m.songSortAsc = !m.songSortAsc
+	sortSongs(m.songs, m.songSortBy, m.songSortAsc)
+	return m
 }
 
 func toggleAddToPlaylistPopup(m model) model {
