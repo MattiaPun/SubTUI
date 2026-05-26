@@ -155,14 +155,14 @@ type LibraryKeybinds struct {
 	AddRating           []string `toml:"add_rating"`
 	GoToAlbum           []string `toml:"go_to_album"`
 	GoToArtist          []string `toml:"go_to_artist"`
-	SortPlaylistSongs   []string `toml:"sort_playlist_songs"`
-	ToggleSortDirection []string `toml:"toggle_sort_direction"`
 	Rate0               []string `toml:"rate_0"`
 	Rate1               []string `toml:"rate_1"`
 	Rate2               []string `toml:"rate_2"`
 	Rate3               []string `toml:"rate_3"`
 	Rate4               []string `toml:"rate_4"`
 	Rate5               []string `toml:"rate_5"`
+	SortPlaylistSongs   []string `toml:"sort_playlist_songs"`
+	ToggleSortDirection []string `toml:"toggle_sort_direction"`
 }
 
 type MediaKeybinds struct {
