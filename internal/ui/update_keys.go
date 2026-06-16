@@ -2,8 +2,8 @@ package ui
 
 import (
 	"math/rand"
-	"strings"
 	"sort"
+	"strings"
 
 	"github.com/MattiaPun/SubTUI/v2/internal/api"
 	"github.com/MattiaPun/SubTUI/v2/internal/integration"
@@ -1335,47 +1335,8 @@ func toggleSongSort(m model) model {
 	totalModes := 8
 	m.songSortBy = (m.songSortBy + 1) % totalModes
 
-	switch m.songSortBy {
-	case api.SongSortRating, api.SongSortDuration:
-		m.songSortAsc = false // high rating / longer duration first
-	default:
-		m.songSortAsc = true
-	}
-
 	sortSongs(m.songs, m.songSortBy, m.songSortAsc)
 	return m
-}
-
-func sortSongs(songs []api.Song, sortBy int, asc bool) {
-  if sortBy == api.SongSortNone {
-    return
-  }
-
-  sort.Slice(songs, func(i, j int) bool {
-    var cmp bool
-
-    switch sortBy {
-    case api.SongSortTitle:
-      cmp = songs[i].Title < songs[j].Title
-    case api.SongSortArtist:
-      cmp = songs[i].Artist < songs[j].Artist
-    case api.SongSortAlbum:
-      cmp = songs[i].Album < songs[j].Album
-    case api.SongSortDuration:
-      cmp = songs[i].Duration < songs[j].Duration
-    case api.SongSortRating:
-      cmp = songs[i].Rating < songs[j].Rating
-    case api.SongSortYear:
-      cmp = songs[i].Year < songs[j].Year
-    default:
-      return false
-    }
-
-    if asc {
-      return cmp
-    }
-    return !cmp
-  })
 }
 
 func toggleSortDirection(m model) model {
@@ -2013,4 +1974,37 @@ func resetSelection(m model) model {
 	m.selectionMap = make(map[int]bool)
 
 	return m
+}
+
+// Helper for sorting songs
+func sortSongs(songs []api.Song, sortBy int, asc bool) {
+	if sortBy == api.SongSortNone {
+		return
+	}
+
+	sort.Slice(songs, func(i, j int) bool {
+		var cmp bool
+
+		switch sortBy {
+		case api.SongSortTitle:
+			cmp = songs[i].Title < songs[j].Title
+		case api.SongSortArtist:
+			cmp = songs[i].Artist < songs[j].Artist
+		case api.SongSortAlbum:
+			cmp = songs[i].Album < songs[j].Album
+		case api.SongSortDuration:
+			cmp = songs[i].Duration < songs[j].Duration
+		case api.SongSortRating:
+			cmp = songs[i].Rating < songs[j].Rating
+		case api.SongSortYear:
+			cmp = songs[i].Year < songs[j].Year
+		default:
+			return false
+		}
+
+		if asc {
+			return cmp
+		}
+		return !cmp
+	})
 }
