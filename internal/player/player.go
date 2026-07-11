@@ -58,6 +58,26 @@ func waitForMpvSocket(socketPath string, timeout time.Duration) error {
 	}
 }
 
+func stopMpvProcess() {
+	if mpvCmd == nil || mpvCmd.Process == nil {
+		return
+	}
+
+	_ = mpvCmd.Process.Signal(syscall.SIGTERM)
+
+	done := make(chan error, 1)
+	go func() {
+		done <- mpvCmd.Wait()
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		_ = mpvCmd.Process.Kill()
+		<-done
+	}
+}
+
 func InitPlayer() error {
 	socketPath := filepath.Join(os.TempDir(), fmt.Sprintf("subtui_mpv_socket_%d", os.Getuid()))
 	log.Printf("[Player] Initializing MPV IPC at %s", socketPath)
@@ -93,9 +113,7 @@ func InitPlayer() error {
 	}
 
 	if err := waitForMpvSocket(socketPath, mpvSocketTimeout); err != nil {
-		if mpvCmd != nil && mpvCmd.Process != nil {
-			_ = mpvCmd.Process.Signal(syscall.SIGTERM)
-		}
+		stopMpvProcess()
 		return err
 	}
 
@@ -108,9 +126,7 @@ func InitPlayer() error {
 }
 
 func ShutdownPlayer() {
-	if mpvCmd != nil && mpvCmd.Process != nil {
-		_ = mpvCmd.Process.Signal(syscall.SIGTERM)
-	}
+	stopMpvProcess()
 	mpvClient = nil
 	mpvCmd = nil
 }
