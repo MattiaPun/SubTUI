@@ -3,6 +3,7 @@ package player
 import (
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -30,11 +31,39 @@ type PlayerStatus struct {
 	Path     string
 }
 
-const volumeStep = 5
+const (
+	volumeStep          = 5
+	mpvSocketTimeout    = 5 * time.Second
+	mpvSocketPollDelay  = 100 * time.Millisecond
+	mpvDialProbeTimeout = 200 * time.Millisecond
+)
+
+func waitForMpvSocket(socketPath string, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	var lastErr error
+
+	for {
+		conn, err := net.DialTimeout("unix", socketPath, mpvDialProbeTimeout)
+		if err == nil {
+			_ = conn.Close()
+			return nil
+		}
+
+		lastErr = err
+		if time.Now().After(deadline) {
+			return fmt.Errorf("timed out waiting for mpv IPC socket %s: %w", socketPath, lastErr)
+		}
+
+		time.Sleep(mpvSocketPollDelay)
+	}
+}
 
 func InitPlayer() error {
 	socketPath := filepath.Join(os.TempDir(), fmt.Sprintf("subtui_mpv_socket_%d", os.Getuid()))
 	log.Printf("[Player] Initializing MPV IPC at %s", socketPath)
+
+	// Clean up stale socket if one exists from a previous crash.
+	_ = os.Remove(socketPath)
 
 	killArg := fmt.Sprintf("--input-ipc-server=%s", socketPath)
 	_ = exec.Command("pkill", "-f", "--", killArg).Run()
@@ -63,12 +92,11 @@ func InitPlayer() error {
 		return fmt.Errorf("failed to start mpv: %v", err)
 	}
 
-	maxRetries := 10
-	for i := 0; i < maxRetries; i++ {
-		if _, err := os.Stat(socketPath); err == nil {
-			break
+	if err := waitForMpvSocket(socketPath, mpvSocketTimeout); err != nil {
+		if mpvCmd != nil && mpvCmd.Process != nil {
+			_ = mpvCmd.Process.Signal(syscall.SIGTERM)
 		}
-		time.Sleep(100 * time.Millisecond)
+		return err
 	}
 
 	ipcc := mpv.NewIPCClient(socketPath)
@@ -80,9 +108,11 @@ func InitPlayer() error {
 }
 
 func ShutdownPlayer() {
-	if mpvCmd != nil {
+	if mpvCmd != nil && mpvCmd.Process != nil {
 		_ = mpvCmd.Process.Signal(syscall.SIGTERM)
 	}
+	mpvClient = nil
+	mpvCmd = nil
 }
 
 func PlaySong(songID string, startPaused bool) error {
@@ -141,15 +171,26 @@ func Stop() {
 }
 
 func RestartSong() {
-	_ = mpvClient.Seek(-int(mpvClient.Position()))
+	if mpvClient == nil {
+		return
+	}
 
+	_ = mpvClient.Seek(-int(mpvClient.Position()))
 }
 
 func Back10Seconds() {
+	if mpvClient == nil {
+		return
+	}
+
 	_ = mpvClient.Seek(-10)
 }
 
 func Forward10Seconds() {
+	if mpvClient == nil {
+		return
+	}
+
 	_ = mpvClient.Seek(+10)
 }
 
@@ -161,21 +202,37 @@ func SeekTo(seconds float64) {
 }
 
 func VolumeUp() {
+	if mpvClient == nil {
+		return
+	}
+
 	newVolume := ((mpvClient.CurrentVolume() / volumeStep) + 1) * volumeStep
 	SetVolume(newVolume)
 }
 
 func VolumeDown() {
+	if mpvClient == nil {
+		return
+	}
+
 	newVolume := ((mpvClient.CurrentVolume() - 1) / volumeStep) * volumeStep
 	SetVolume(newVolume)
 }
 
 func GetVolume() float64 {
+	if mpvClient == nil {
+		return 0
+	}
+
 	vol, _ := mpvClient.GetFloatProperty("volume")
 	return vol
 }
 
 func SetVolume(volume int) {
+	if mpvClient == nil {
+		return
+	}
+
 	if volume < 0 {
 		volume = 0
 	} else if volume > 100 {
