@@ -1195,6 +1195,8 @@ func helpViewContent() string {
 		line(keys(api.AppConfig.Keybinds.Navigation.Select), "Select"),
 		line(keys(api.AppConfig.Keybinds.Navigation.ToggleSelection), "Toggle Selection"),
 		line(keys(api.AppConfig.Keybinds.Navigation.PlayShuffled), "Start shuffled"),
+		line(keys(api.AppConfig.Keybinds.Navigation.GoPageUp), "Go page up"),
+		line(keys(api.AppConfig.Keybinds.Navigation.GoPageDown), "Go page down"),
 		line(keys(api.AppConfig.Keybinds.Navigation.GoHalfPageUp), "Go half page up"),
 		line(keys(api.AppConfig.Keybinds.Navigation.GoHalfPageDown), "Go half page down"),
 	)

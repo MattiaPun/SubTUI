@@ -140,6 +140,8 @@ type NavigationKeybinds struct {
 	Select          []string `toml:"select"`
 	ToggleSelection []string `toml:"toggle_selection"`
 	PlayShuffled    []string `toml:"play_shuffled"`
+	GoPageUp        []string `toml:"go_page_up"`
+	GoPageDown      []string `toml:"go_page_down"`
 	GoHalfPageUp    []string `toml:"go_half_page_up"`
 	GoHalfPageDown  []string `toml:"go_half_page_down"`
 }
