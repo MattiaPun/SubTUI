@@ -726,7 +726,7 @@ func footerInformation(m model, width int) string {
 	infoLen := len(currentTime) + 4 + len(totalTime) // 2x padding
 	progressLen := int(percent * float64(width-infoLen))
 	progressBar += " [" + strings.Repeat("=", progressLen) + ">"
-	progressBar += strings.Repeat("-", width-infoLen-progressLen-1) + "] " // >-char
+	progressBar += strings.Repeat("-", max(0, width-infoLen-progressLen-1)) + "] " // >-char
 
 	bottomRow = lipgloss.JoinHorizontal(
 		lipgloss.Center,
@@ -1195,6 +1195,8 @@ func helpViewContent() string {
 		line(keys(api.AppConfig.Keybinds.Navigation.Select), "Select"),
 		line(keys(api.AppConfig.Keybinds.Navigation.ToggleSelection), "Toggle Selection"),
 		line(keys(api.AppConfig.Keybinds.Navigation.PlayShuffled), "Start shuffled"),
+		line(keys(api.AppConfig.Keybinds.Navigation.GoPageUp), "Go page up"),
+		line(keys(api.AppConfig.Keybinds.Navigation.GoPageDown), "Go page down"),
 		line(keys(api.AppConfig.Keybinds.Navigation.GoHalfPageUp), "Go half page up"),
 		line(keys(api.AppConfig.Keybinds.Navigation.GoHalfPageDown), "Go half page down"),
 	)

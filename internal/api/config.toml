@@ -69,6 +69,8 @@ max_rating = 0 # Exclude songs with a rating less than or equal to this number (
   select            = ['enter']
   toggle_selection  = ['x']
   play_shuffled     = ['alt+enter']
+  go_page_up        = ['pgup']
+  go_page_down      = ['pgdown']
   go_half_page_up   = ['ctrl+u']
   go_half_page_down = ['ctrl+d']
 

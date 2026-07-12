@@ -423,6 +423,7 @@ func SubsonicGetLyrics(ID string) ([]StructuredLyrics, error) {
 	data, err := subsonicGET("/getLyricsBySongId", params)
 	if err != nil {
 		log.Printf("[ERROR] API Error in GetLyrics: %s", err)
+		return nil, err
 	}
 
 	return data.Response.LyricsList.StructuredLyrics, nil
