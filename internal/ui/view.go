@@ -726,7 +726,7 @@ func footerInformation(m model, width int) string {
 	infoLen := len(currentTime) + 4 + len(totalTime) // 2x padding
 	progressLen := int(percent * float64(width-infoLen))
 	progressBar += " [" + strings.Repeat("=", progressLen) + ">"
-	progressBar += strings.Repeat("-", width-infoLen-progressLen-1) + "] " // >-char
+	progressBar += strings.Repeat("-", max(0, width-infoLen-progressLen-1)) + "] " // >-char
 
 	bottomRow = lipgloss.JoinHorizontal(
 		lipgloss.Center,
