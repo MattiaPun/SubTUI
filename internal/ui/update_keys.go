@@ -560,49 +560,6 @@ func goBack(m model) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func _getMainListLength(m model) int {
-	switch m.displayMode {
-	case displaySongs:
-		if m.viewMode == viewQueue {
-			return len(m.queue)
-		} else {
-			return len(m.songs)
-		}
-	case displayAlbums:
-		return len(m.albums)
-	case displayArtist:
-		return len(m.artists)
-	}
-	return 0
-}
-
-func _getMainVisibleRows(m model) int {
-	// Height - Search(3) - Footer(6) - Margins(4) - TableHeader(2) = 17
-	return max(1, m.height - 17)
-}
-
-func _getSideLenAndRows(m model) (int, int) {
-	sideLen := len(albumTypes) + len(m.playlists)
-
-	headerHeight := 1
-
-	footerHeight := int(float64(m.height) * 0.10)
-	if footerHeight < 5 {
-		footerHeight = 5
-	}
-
-	mainHeight := m.height - headerHeight - footerHeight - (3 * 2) // 3 sections with each 2 borders (top and bottom)
-	if mainHeight < 0 {
-		mainHeight = 0
-	}
-
-	visibleRows := mainHeight - 6 // Conservative estimate for headers
-	if visibleRows < 1 {
-		visibleRows = 1
-	}
-	return sideLen, visibleRows
-}
-
 func navigateTop(m model) model {
 	switch m.focus {
 	case focusMain:
@@ -723,8 +680,8 @@ func navigatePageUp(m model) model {
 				m.cursorMain = 0
 			} else {
 				relativeCursorPos := m.cursorMain - m.mainOffset
-				m.mainOffset = max(0, m.mainOffset - _getMainVisibleRows(m))
-				m.cursorMain = max(0, m.mainOffset + relativeCursorPos)
+				m.mainOffset = max(0, m.mainOffset-_getMainVisibleRows(m))
+				m.cursorMain = max(0, m.mainOffset+relativeCursorPos)
 			}
 		}
 		if m.showSelection {
@@ -737,8 +694,8 @@ func navigatePageUp(m model) model {
 				m.cursorSide = 0
 			} else {
 				relativeCursorPos := m.cursorSide - m.sideOffset
-				m.sideOffset = max(0, m.sideOffset - visibleRows)
-				m.cursorSide = max(0, m.sideOffset + relativeCursorPos)
+				m.sideOffset = max(0, m.sideOffset-visibleRows)
+				m.cursorSide = max(0, m.sideOffset+relativeCursorPos)
 			}
 		}
 	}
@@ -751,13 +708,13 @@ func navigatePageDown(m model) (model, tea.Cmd) {
 		listLen := _getMainListLength(m)
 		if listLen > 0 && m.cursorMain < listLen-1 {
 			visibleRows := _getMainVisibleRows(m)
-			maxOffset := max(0, listLen - visibleRows)
+			maxOffset := max(0, listLen-visibleRows)
 			if m.mainOffset == maxOffset {
 				m.cursorMain = listLen - 1
 			} else {
 				relativeCursorPos := m.cursorMain - m.mainOffset
-				m.mainOffset = min(maxOffset, m.mainOffset + visibleRows)
-				m.cursorMain = min(listLen - 1, m.mainOffset + relativeCursorPos)
+				m.mainOffset = min(maxOffset, m.mainOffset+visibleRows)
+				m.cursorMain = min(listLen-1, m.mainOffset+relativeCursorPos)
 			}
 		}
 		if m.showSelection {
@@ -766,13 +723,13 @@ func navigatePageDown(m model) (model, tea.Cmd) {
 	case focusSidebar:
 		sideLen, visibleRows := _getSideLenAndRows(m)
 		if sideLen > 0 && m.cursorSide < sideLen-1 {
-			maxOffset := max(0, sideLen - visibleRows)
+			maxOffset := max(0, sideLen-visibleRows)
 			if m.sideOffset == maxOffset {
 				m.cursorSide = sideLen - 1
 			} else {
 				relativeCursorPos := m.cursorSide - m.sideOffset
-				m.sideOffset = min(maxOffset, m.sideOffset + visibleRows)
-				m.cursorSide = min(sideLen - 1, m.sideOffset + relativeCursorPos)
+				m.sideOffset = min(maxOffset, m.sideOffset+visibleRows)
+				m.cursorSide = min(sideLen-1, m.sideOffset+relativeCursorPos)
 			}
 		}
 	}
@@ -2055,4 +2012,50 @@ func sortSongs(songs []api.Song, sortBy int, asc bool) {
 		}
 		return !cmp
 	})
+}
+
+// Helper for getting the length of the list
+func _getMainListLength(m model) int {
+	switch m.displayMode {
+	case displaySongs:
+		if m.viewMode == viewQueue {
+			return len(m.queue)
+		} else {
+			return len(m.songs)
+		}
+	case displayAlbums:
+		return len(m.albums)
+	case displayArtist:
+		return len(m.artists)
+	}
+	return 0
+}
+
+// Helper for getting the amount of visible rows
+func _getMainVisibleRows(m model) int {
+	// Height - Search(3) - Footer(6) - Margins(4) - TableHeader(2) = 17
+	return max(1, m.height-17)
+}
+
+// Helper for getting the amount of visible rows and the side length
+func _getSideLenAndRows(m model) (int, int) {
+	sideLen := len(albumTypes) + len(m.playlists)
+
+	headerHeight := 1
+
+	footerHeight := int(float64(m.height) * 0.10)
+	if footerHeight < 5 {
+		footerHeight = 5
+	}
+
+	mainHeight := m.height - headerHeight - footerHeight - (3 * 2) // 3 sections with each 2 borders (top and bottom)
+	if mainHeight < 0 {
+		mainHeight = 0
+	}
+
+	visibleRows := mainHeight - 6 // Conservative estimate for headers
+	if visibleRows < 1 {
+		visibleRows = 1
+	}
+	return sideLen, visibleRows
 }
