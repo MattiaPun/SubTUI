@@ -113,7 +113,11 @@ func (m *model) savePlayQueue() tea.Cmd {
 
 	if len(m.queue) != 0 {
 		currentID = m.queue[m.queueIndex].ID
-		for _, song := range m.queue {
+
+		// Limit to 250 song window around current (up to 50 previous)
+		lowerIdx := max(0, m.queueIndex-50)
+		upperIdx := min(lowerIdx+250, len(m.queue))
+		for _, song := range m.queue[lowerIdx:upperIdx] {
 			ids = append(ids, song.ID)
 		}
 	}
