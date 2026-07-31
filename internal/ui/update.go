@@ -79,6 +79,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case integration.SetPositionMsg:
 		return m.handleIntegrationSetPosition(msg)
 
+	case integration.AddTrackRequestMsg:
+		return m.handleAddTrackRequest(msg)
+
+	case integration.RemoveTrackRequestMsg:
+		return m.handleRemoveTrackRequest(msg)
+
+	case integration.GoToRequestMsg:
+		return m.handleGoToRequest(msg)
+
 	case SetDiscordMsg:
 		return m.handleSetDiscord(msg)
 

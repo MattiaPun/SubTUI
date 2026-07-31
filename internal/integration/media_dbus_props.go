@@ -35,15 +35,19 @@ var playerProps = map[string]*prop.Prop{
 var rootProps = map[string]*prop.Prop{
 	"CanQuit":             newProp(true, nil),
 	"CanRaise":            newProp(false, nil),
-	"HasTrackList":        newProp(false, nil),
+	"HasTrackList":        newProp(true, nil),
 	"Identity":            newProp("SubTUI", nil),
 	"SupportedUriSchemes": newProp([]string{}, nil),
 	"SupportedMimeTypes":  newProp([]string{}, nil),
 }
 
 func (m Metadata) ToMap() map[string]interface{} {
+	trackID := dbus.ObjectPath(NoTrack)
+	if m.TrackID != "" {
+		trackID = dbus.ObjectPath(m.TrackID)
+	}
 	return map[string]interface{}{
-		"mpris:trackid":     dbus.ObjectPath("/org/mpris/MediaPlayer2/TrackList/NoTrack"),
+		"mpris:trackid":     trackID,
 		"mpris:length":      m.LengthInMicroseconds(),
 		"xesam:title":       m.Title,
 		"xesam:artist":      []string{m.Artist},

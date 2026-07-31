@@ -2,9 +2,11 @@ package ui
 
 import (
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/MattiaPun/SubTUI/v2/internal/api"
+	"github.com/MattiaPun/SubTUI/v2/internal/integration"
 	"github.com/MattiaPun/SubTUI/v2/internal/player"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -104,6 +106,11 @@ func (m *model) setQueue(startIndex int) tea.Cmd {
 	}
 
 	m.queue = newQueue
+	result := m.generateTrackIDs()
+	m.queueTrackIDs = result.queueTrackIDs
+	m.trackIDCounter = result.trackIDCounter
+	m.queueIndex = newStartIndex
+	m.syncTrackListToDBus()
 	return m.playQueueIndex(newStartIndex, false)
 }
 
@@ -119,6 +126,47 @@ func (m *model) savePlayQueue() tea.Cmd {
 	}
 
 	return savePlayQueueCmd(ids, currentID)
+}
+
+func (m model) generateTrackIDs() model {
+	m.queueTrackIDs = make([]string, len(m.queue))
+	for i := range m.queue {
+		m.trackIDCounter++
+		m.queueTrackIDs[i] = fmt.Sprintf("/org/mpris/MediaPlayer2/TrackList/%d", m.trackIDCounter)
+	}
+	return m
+}
+
+func (m model) buildTrackMetadatas() map[string]map[string]interface{} {
+	metas := make(map[string]map[string]interface{}, len(m.queue))
+	for i := range m.queue {
+		song := m.queue[i]
+		meta := integration.Metadata{
+			TrackID:  m.queueTrackIDs[i],
+			Title:    song.Title,
+			Artist:   song.Artist,
+			Album:    song.Album,
+			Duration: float64(song.Duration),
+			ImageURL: api.SubsonicCoverArtUrl(song.ID, 500),
+			Rating:   math.Round(float64(song.Rating*10)) / 10,
+		}
+		metas[m.queueTrackIDs[i]] = meta.ToMap()
+	}
+	return metas
+}
+
+func (m *model) currentTrackID() string {
+	if m.queueIndex >= 0 && m.queueIndex < len(m.queueTrackIDs) {
+		return m.queueTrackIDs[m.queueIndex]
+	}
+	return integration.NoTrack
+}
+
+func (m *model) syncTrackListToDBus() {
+	if m.dbusInstance == nil {
+		return
+	}
+	m.dbusInstance.ReplaceTrackList(m.queueTrackIDs, m.buildTrackMetadatas(), m.currentTrackID())
 }
 
 func getSelectedSongs(m model) []api.Song {

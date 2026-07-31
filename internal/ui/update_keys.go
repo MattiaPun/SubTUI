@@ -973,6 +973,9 @@ func mediaQueueNext(m model) (model, tea.Cmd) {
 	// Sync MPV's Queue
 	m.syncNextSong()
 
+	m = m.generateTrackIDs()
+	m.syncTrackListToDBus()
+
 	return m, cmd
 }
 
@@ -1006,6 +1009,9 @@ func mediaQueueLast(m model) (model, tea.Cmd) {
 
 	// Sync MPV's Queue
 	m.syncNextSong()
+
+	m = m.generateTrackIDs()
+	m.syncTrackListToDBus()
 
 	return m, cmd
 }
@@ -1068,6 +1074,9 @@ func mediaDeleteSongFromQueue(m model) model {
 	// Sync MPV's Queue
 	m.syncNextSong()
 
+	m = m.generateTrackIDs()
+	m.syncTrackListToDBus()
+
 	return m
 }
 
@@ -1083,6 +1092,9 @@ func mediaClearQueue(m model) model {
 
 	// Sync MPV's Queue
 	m.syncNextSong()
+
+	m = m.generateTrackIDs()
+	m.syncTrackListToDBus()
 
 	return m
 }
@@ -1138,6 +1150,8 @@ func mediaSongUpQueue(m model) model {
 	}
 
 	m.syncNextSong()
+	m = m.generateTrackIDs()
+	m.syncTrackListToDBus()
 	return m
 }
 
@@ -1192,6 +1206,8 @@ func mediaSongDownQueue(m model) model {
 	}
 
 	m.syncNextSong()
+	m = m.generateTrackIDs()
+	m.syncTrackListToDBus()
 	return m
 }
 
@@ -1275,6 +1291,9 @@ func mediaShuffle(m model) model {
 
 	// Sync MPV's Queue
 	m.syncNextSong()
+
+	m = m.generateTrackIDs()
+	m.syncTrackListToDBus()
 
 	return m
 }

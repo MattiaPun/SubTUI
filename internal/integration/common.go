@@ -8,6 +8,7 @@ type Metadata struct {
 	Position float64
 	ImageURL string
 	Rating   float64
+	TrackID  string
 }
 
 type Status string
@@ -24,6 +25,18 @@ type NextSongMsg struct{}
 type PreviousSongMsg struct{}
 type SetPositionMsg struct {
 	Position int64
+}
+
+type AddTrackRequestMsg struct {
+	URI          string
+	AfterTrack   string
+	SetAsCurrent bool
+}
+type RemoveTrackRequestMsg struct {
+	TrackID string
+}
+type GoToRequestMsg struct {
+	TrackID string
 }
 
 func (m Metadata) LengthInMicroseconds() int64 {
