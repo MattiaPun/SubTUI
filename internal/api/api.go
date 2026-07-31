@@ -446,6 +446,17 @@ func SubsonicGetRandomSongs(count int, genre string) ([]Song, error) {
 	return data.Response.RandomSongs.Song, nil
 }
 
+func SubsonicGetSong(ID string) (*Song, error) {
+	params := url.Values{
+		"id": {ID},
+	}
+	data, err := subsonicGET("/getSong", params)
+	if err != nil {
+		return nil, err
+	}
+	return &data.Response.SongDetail, nil
+}
+
 func SubsonicGetLyrics(ID string) ([]StructuredLyrics, error) {
 	params := url.Values{
 		"id": {ID},

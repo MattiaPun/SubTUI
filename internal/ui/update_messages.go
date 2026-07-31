@@ -359,6 +359,7 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 
 		// Setup metadata
 		metadata := integration.Metadata{
+			TrackID:  m.currentTrackID(),
 			Title:    currentSong.Title,
 			Artist:   currentSong.Artist,
 			Album:    currentSong.Album,
@@ -539,6 +540,8 @@ func (m model) handleShuffledSongs(msg shuffledSongsMsg) (tea.Model, tea.Cmd) {
 
 	m.queue = shuffledQueue
 	m.loading = false
+	m = m.generateTrackIDs()
+	m.syncTrackListToDBus()
 
 	return m, m.playQueueIndex(0, false)
 }
@@ -565,6 +568,9 @@ func (m model) handlePlayQueueResult(msg playQueueResultMsg) (tea.Model, tea.Cmd
 			m.queueIndex = index
 		}
 	}
+
+	m = m.generateTrackIDs()
+	m.syncTrackListToDBus()
 
 	return m, m.playQueueIndex(m.queueIndex, true)
 }
@@ -610,4 +616,97 @@ func (m model) handleIntegrationSetPosition(msg integration.SetPositionMsg) (tea
 func (m model) handleSetDiscord(msg SetDiscordMsg) (tea.Model, tea.Cmd) {
 	m.discordInstance = msg.Instance
 	return m, nil
+}
+
+func (m model) handleAddTrackRequest(msg integration.AddTrackRequestMsg) (tea.Model, tea.Cmd) {
+	songID := extractSongIDFromURI(msg.URI)
+	if songID == "" {
+		return m, nil
+	}
+
+	song, err := api.SubsonicGetSong(songID)
+	if err != nil || song.ID == "" {
+		return m, nil
+	}
+
+	insertIndex := len(m.queue)
+	if msg.AfterTrack != integration.NoTrack {
+		for i, tid := range m.queueTrackIDs {
+			if tid == msg.AfterTrack {
+				insertIndex = i + 1
+				break
+			}
+		}
+	} else {
+		insertIndex = 0
+	}
+
+	tail := append([]api.Song{}, m.queue[insertIndex:]...)
+	m.queue = append(m.queue[:insertIndex], *song)
+	m.queue = append(m.queue, tail...)
+
+	m = m.generateTrackIDs()
+	m.syncTrackListToDBus()
+
+	if msg.SetAsCurrent {
+		newIdx := insertIndex
+		if newIdx >= len(m.queue) {
+			newIdx = len(m.queue) - 1
+		}
+		m.queueIndex = newIdx
+		return m, m.playQueueIndex(newIdx, false)
+	}
+
+	m.syncNextSong()
+	return m, nil
+}
+
+func (m model) handleRemoveTrackRequest(msg integration.RemoveTrackRequestMsg) (tea.Model, tea.Cmd) {
+	removeIndex := -1
+	for i, tid := range m.queueTrackIDs {
+		if tid == msg.TrackID {
+			removeIndex = i
+			break
+		}
+	}
+	if removeIndex < 0 || removeIndex >= len(m.queue) {
+		return m, nil
+	}
+
+	if removeIndex == m.queueIndex {
+		return m, nil
+	}
+
+	m.queue = append(m.queue[:removeIndex], m.queue[removeIndex+1:]...)
+
+	if removeIndex < m.queueIndex {
+		m.queueIndex--
+	}
+
+	m = m.generateTrackIDs()
+	m.syncTrackListToDBus()
+
+	m.syncNextSong()
+	return m, nil
+}
+
+func (m model) handleGoToRequest(msg integration.GoToRequestMsg) (tea.Model, tea.Cmd) {
+	for i, tid := range m.queueTrackIDs {
+		if tid == msg.TrackID {
+			return m, m.playQueueIndex(i, false)
+		}
+	}
+	return m, nil
+}
+
+func extractSongIDFromURI(uri string) string {
+	if strings.Contains(uri, "id=") {
+		parts := strings.Split(uri, "id=")
+		if len(parts) > 1 {
+			id := strings.Split(parts[1], "&")[0]
+			return id
+		}
+	}
+
+	return uri
 }

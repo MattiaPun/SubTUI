@@ -8,7 +8,8 @@ import (
 )
 
 type MediaPlayer2 struct {
-	Program *tea.Program
+	Program  *tea.Program
+	Instance *Instance
 }
 
 func (m *MediaPlayer2) Play() *dbus.Error {

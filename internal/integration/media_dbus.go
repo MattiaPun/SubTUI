@@ -4,6 +4,7 @@ package integration
 
 import (
 	"log"
+	"sync"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/godbus/dbus/v5"
@@ -11,8 +12,10 @@ import (
 )
 
 type Instance struct {
-	props *prop.Properties
-	conn  *dbus.Conn
+	props      *prop.Properties
+	conn       *dbus.Conn
+	trackMetas map[dbus.ObjectPath]map[string]interface{}
+	mu         sync.RWMutex
 }
 
 func Init(p *tea.Program) *Instance {
@@ -21,9 +24,12 @@ func Init(p *tea.Program) *Instance {
 		return nil
 	}
 
-	ins := &Instance{conn: conn}
+	ins := &Instance{
+		conn:       conn,
+		trackMetas: make(map[dbus.ObjectPath]map[string]interface{}),
+	}
 
-	mp2 := &MediaPlayer2{Program: p}
+	mp2 := &MediaPlayer2{Program: p, Instance: ins}
 	err = conn.Export(mp2, "/org/mpris/MediaPlayer2", "org.mpris.MediaPlayer2.Player")
 	if err != nil {
 		log.Printf("MPRIS Export Error: %v", err)
@@ -35,12 +41,18 @@ func Init(p *tea.Program) *Instance {
 		log.Printf("MPRIS Root Export Error: %v", err)
 	}
 
+	err = conn.Export(mp2, "/org/mpris/MediaPlayer2", "org.mpris.MediaPlayer2.TrackList")
+	if err != nil {
+		log.Printf("MPRIS TrackList Export Error: %v", err)
+	}
+
 	ins.props, _ = prop.Export(
 		conn,
 		"/org/mpris/MediaPlayer2",
 		map[string]map[string]*prop.Prop{
-			"org.mpris.MediaPlayer2":        rootProps,
-			"org.mpris.MediaPlayer2.Player": playerProps,
+			"org.mpris.MediaPlayer2":          rootProps,
+			"org.mpris.MediaPlayer2.Player":   playerProps,
+			"org.mpris.MediaPlayer2.TrackList": trackListProps,
 		},
 	)
 
@@ -98,11 +110,17 @@ func (ins *Instance) ClearMetadata() {
 		return
 	}
 
-	emptyMeta := make(map[string]dbus.Variant)
-	emptyMeta["mpris:trackid"] = dbus.MakeVariant(dbus.ObjectPath("/org/mpris/MediaPlayer2/TrackList/NoTrack"))
+	emptyMeta := map[string]dbus.Variant{
+		"mpris:trackid": dbus.MakeVariant(dbus.ObjectPath(NoTrack)),
+	}
+
+	signalMeta := map[string]interface{}{
+		"mpris:trackid": dbus.ObjectPath(NoTrack),
+	}
 
 	_ = ins.props.Set("org.mpris.MediaPlayer2.Player", "Metadata", dbus.MakeVariant(emptyMeta))
 	_ = ins.props.Set("org.mpris.MediaPlayer2.Player", "PlaybackStatus", dbus.MakeVariant("Stopped"))
+	ins.EmitTrackMetadataChanged(NoTrack, signalMeta)
 }
 
 func (ins *Instance) Close() {
