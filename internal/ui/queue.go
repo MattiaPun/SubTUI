@@ -173,6 +173,29 @@ func (m *model) syncTrackListToDBus() {
 	m.dbusInstance.ReplaceTrackList(m.queueTrackIDs, m.buildTrackMetadatas(), m.currentTrackID())
 }
 
+// Пере-пушить metadata поточного треку — після generateTrackIDs() старе
+// mpris:trackid у Player.Metadata інвалідне (id перегенеровуються всі),
+// тому без цього клієнти (Quickshell-плейліст) втрачають підсвітку треку.
+func (m *model) pushCurrentMetadata() {
+	if m.dbusInstance == nil {
+		return
+	}
+	if m.queueIndex < 0 || m.queueIndex >= len(m.queue) {
+		m.dbusInstance.UpdateMetadata(integration.Metadata{TrackID: integration.NoTrack})
+		return
+	}
+	song := m.queue[m.queueIndex]
+	m.dbusInstance.UpdateMetadata(integration.Metadata{
+		TrackID:  m.currentTrackID(),
+		Title:    song.Title,
+		Artist:   song.Artist,
+		Album:    song.Album,
+		Duration: float64(song.Duration),
+		ImageURL: api.SubsonicCoverArtUrl(song.ID, 500),
+		Rating:   math.Round(float64(song.Rating*10)) / 10,
+	})
+}
+
 func getSelectedSongs(m model) []api.Song {
 	if m.focus == focusMain && cursorInBounds(m) {
 		switch m.viewMode {

@@ -591,6 +591,10 @@ func (m model) handleIntegrationStop() (tea.Model, tea.Cmd) {
 	m.queue = nil
 	player.Stop()
 
+	// Прибираємо TrackList на D-Bus, поки інтеграція перепідключається
+	m = m.generateTrackIDs()
+	m.syncTrackListToDBus()
+
 	return m, nil
 }
 

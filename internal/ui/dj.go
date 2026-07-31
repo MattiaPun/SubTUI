@@ -187,6 +187,14 @@ func (m model) handleDjRefill(msg djRefillResultMsg) (tea.Model, tea.Cmd) {
 	}
 
 	m.queue = append(m.queue, selected...)
+
+	// DJ-дозаповнення має потрапити в MPRIS TrackList: перегенеровуємо
+	// id (ReplaceTrackList згенерує TrackListReplaced) і пере-пушимо
+	// metadata поточного треку, бо його старий id став невалідним.
+	m = m.generateTrackIDs()
+	m.syncTrackListToDBus()
+	m.pushCurrentMetadata()
+
 	m.syncNextSong()
 
 	return m, nil
