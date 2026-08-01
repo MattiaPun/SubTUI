@@ -122,3 +122,4 @@ max_rating = 0 # Exclude songs with a rating less than or equal to this number (
   [keybinds.other]
   toggle_notifications = ['s']
   create_share_link    = ['ctrl+s']
+  start_radio          = ['r']

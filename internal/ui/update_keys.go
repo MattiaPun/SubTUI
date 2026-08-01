@@ -269,6 +269,10 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, mediaCreateShare(m)
 	}
 
+	if keyMatches(key, api.AppConfig.Keybinds.Other.StartRadio) {
+		return startRadio(m)
+	}
+
 	if keyMatches(key, api.AppConfig.Keybinds.Other.ToggleNotifications) {
 		return toggleNotifications(m), nil
 	}
@@ -1440,6 +1444,49 @@ func mediaCreateShare(m model) tea.Cmd {
 	}
 
 	return nil
+}
+
+func startRadio(m model) (tea.Model, tea.Cmd) {
+	var seedID string
+	var prepend []api.Song
+
+	seedSong := func(song api.Song) {
+		seedID = song.ID
+		prepend = []api.Song{song}
+	}
+
+	switch m.focus {
+	case focusMain:
+		if m.viewMode == viewQueue && len(m.queue) > 0 {
+			seedSong(m.queue[m.cursorMain])
+			break
+		}
+		switch m.displayMode {
+		case displaySongs:
+			if m.viewMode == viewList && len(m.songs) > 0 {
+				seedSong(m.songs[m.cursorMain])
+			}
+		case displayAlbums:
+			if len(m.albums) > 0 {
+				seedID = m.albums[m.cursorMain].ID
+			}
+		case displayArtist:
+			if len(m.artists) > 0 {
+				seedID = m.artists[m.cursorMain].ID
+			}
+		}
+	case focusSong:
+		if len(m.queue) > 0 {
+			seedSong(m.queue[m.queueIndex])
+		}
+	}
+
+	if seedID == "" {
+		return m, nil
+	}
+
+	m.loading = true
+	return m, startRadioCmd(seedID, prepend)
 }
 
 func toggleNotifications(m model) model {

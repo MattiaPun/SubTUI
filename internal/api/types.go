@@ -44,6 +44,9 @@ type SubsonicResponse struct {
 		LyricsList struct {
 			StructuredLyrics []StructuredLyrics `json:"structuredLyrics"`
 		} `json:"lyricsList"`
+		SimilarSongs struct {
+			Songs []Song `json:"song"`
+		} `json:"similarSongs2"`
 	} `json:"subsonic-response"`
 }
 

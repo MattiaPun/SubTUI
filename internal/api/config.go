@@ -199,6 +199,7 @@ type FavoriteKeybinds struct {
 type OtherKeybinds struct {
 	ToggleNotifications []string `toml:"toggle_notifications"`
 	CreateShareLink     []string `toml:"create_share_link"`
+	StartRadio          []string `toml:"start_radio"`
 }
 
 func createDefaultConfig(path string, content []byte, label string, permissions os.FileMode) error {
