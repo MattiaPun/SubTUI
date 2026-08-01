@@ -206,13 +206,13 @@ func addRatingCmd(ids []string, rating int) tea.Cmd {
 	}
 }
 
-func startRadioCmd(seed api.Song) tea.Cmd {
+func startRadioCmd(seedID string, prepend []api.Song) tea.Cmd {
 	return func() tea.Msg {
-		similar, err := api.SubsonicGetSimilarSongs(seed.ID)
+		similar, err := api.SubsonicGetSimilarSongs(seedID)
 		if err != nil {
 			return errMsg{err}
 		}
-		return radioResultMsg(append([]api.Song{seed}, similar...))
+		return radioResultMsg(append(prepend, similar...))
 	}
 }
 

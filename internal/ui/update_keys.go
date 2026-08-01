@@ -1447,27 +1447,46 @@ func mediaCreateShare(m model) tea.Cmd {
 }
 
 func startRadio(m model) (tea.Model, tea.Cmd) {
-	var song api.Song
+	var seedID string
+	var prepend []api.Song
+
+	seedSong := func(song api.Song) {
+		seedID = song.ID
+		prepend = []api.Song{song}
+	}
 
 	switch m.focus {
 	case focusMain:
-		if m.displayMode == displaySongs && m.viewMode == viewList && len(m.songs) > 0 {
-			song = m.songs[m.cursorMain]
-		} else if m.viewMode == viewQueue && len(m.queue) > 0 {
-			song = m.queue[m.cursorMain]
+		if m.viewMode == viewQueue && len(m.queue) > 0 {
+			seedSong(m.queue[m.cursorMain])
+			break
+		}
+		switch m.displayMode {
+		case displaySongs:
+			if m.viewMode == viewList && len(m.songs) > 0 {
+				seedSong(m.songs[m.cursorMain])
+			}
+		case displayAlbums:
+			if len(m.albums) > 0 {
+				seedID = m.albums[m.cursorMain].ID
+			}
+		case displayArtist:
+			if len(m.artists) > 0 {
+				seedID = m.artists[m.cursorMain].ID
+			}
 		}
 	case focusSong:
 		if len(m.queue) > 0 {
-			song = m.queue[m.queueIndex]
+			seedSong(m.queue[m.queueIndex])
 		}
 	}
 
-	if song.ID == "" {
+	if seedID == "" {
 		return m, nil
 	}
 
 	m.loading = true
-	return m, startRadioCmd(song)
+	return m, startRadioCmd(seedID, prepend)
 }
 
 func toggleNotifications(m model) model {
