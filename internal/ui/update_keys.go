@@ -269,6 +269,10 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, mediaCreateShare(m)
 	}
 
+	if keyMatches(key, api.AppConfig.Keybinds.Other.StartRadio) {
+		return startRadio(m)
+	}
+
 	if keyMatches(key, api.AppConfig.Keybinds.Other.ToggleNotifications) {
 		return toggleNotifications(m), nil
 	}
@@ -1440,6 +1444,30 @@ func mediaCreateShare(m model) tea.Cmd {
 	}
 
 	return nil
+}
+
+func startRadio(m model) (tea.Model, tea.Cmd) {
+	var song api.Song
+
+	switch m.focus {
+	case focusMain:
+		if m.displayMode == displaySongs && m.viewMode == viewList && len(m.songs) > 0 {
+			song = m.songs[m.cursorMain]
+		} else if m.viewMode == viewQueue && len(m.queue) > 0 {
+			song = m.queue[m.cursorMain]
+		}
+	case focusSong:
+		if len(m.queue) > 0 {
+			song = m.queue[m.queueIndex]
+		}
+	}
+
+	if song.ID == "" {
+		return m, nil
+	}
+
+	m.loading = true
+	return m, startRadioCmd(song)
 }
 
 func toggleNotifications(m model) model {

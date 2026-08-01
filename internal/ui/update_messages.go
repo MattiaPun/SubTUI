@@ -511,6 +511,13 @@ func (m model) handleCreateShare(msg createShareMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m model) handleRadio(msg radioResultMsg) (tea.Model, tea.Cmd) {
+	m.queue = msg
+	m.queueIndex = 0
+	m.loading = false
+	return m, m.playQueueIndex(0, false)
+}
+
 func (m model) handleLyrics(msg getLyricsMsg) (tea.Model, tea.Cmd) {
 	m.songLyrics = msg.result
 	return m, nil

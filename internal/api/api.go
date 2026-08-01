@@ -415,6 +415,20 @@ func SubsonicCreateShare(ids []string) (string, error) {
 
 }
 
+func SubsonicGetSimilarSongs(id string) ([]Song, error) {
+	params := url.Values{
+		"id":    {id},
+		"count": {"50"},
+	}
+
+	data, err := subsonicGET("/getSimilarSongs2", params)
+	if err != nil {
+		return nil, err
+	}
+
+	return data.Response.SimilarSongs.Songs, nil
+}
+
 func SubsonicGetLyrics(ID string) ([]StructuredLyrics, error) {
 	params := url.Values{
 		"id": {ID},

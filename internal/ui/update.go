@@ -58,6 +58,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case getLyricsMsg:
 		return m.handleLyrics(msg)
 
+	case radioResultMsg:
+		return m.handleRadio(msg)
+
 	case playQueueResultMsg:
 		return m.handlePlayQueueResult(msg)
 
