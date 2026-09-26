@@ -29,7 +29,8 @@ func (m model) handleWindowResize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 
 		if m.coverArt != nil {
 			resModel, _ := m.handleCoverArt(coverArtMsg{
-				img: m.coverArt,
+				img:    m.coverArt,
+				resize: true,
 			})
 			if updatedModel, ok := resModel.(model); ok {
 				m = updatedModel
@@ -280,6 +281,8 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 		// Clear album art
 		if api.AppConfig.Theme.DisplayAlbumArt {
 			m.coverArt = nil
+			kittyDelete()
+			m.kittyPlacedCols, m.kittyPlacedRows = 0, 0
 		}
 
 		// Clear lyrics
@@ -472,6 +475,17 @@ func (m model) handleCoverArt(msg coverArtMsg) (tea.Model, tea.Cmd) {
 
 	m.coverArt = msg.img
 	m.coverMosaic = mosaic.New().Width(width).Height(height)
+	// Mosaic sizes are a pixel box, so reuse the cells it actually renders to
+	m.coverCols, m.coverRows = mosaicCellSize(m.coverMosaic, msg.img)
+
+	if m.albumArtRenderer == AlbumArtRendererKitty {
+		if !msg.resize {
+			kittyTransmit(msg.img)
+			m.kittyPlacedCols, m.kittyPlacedRows = 0, 0
+		}
+		m = m.syncKittyPlacement()
+	}
+
 	return m, nil
 }
 

@@ -46,8 +46,13 @@ type model struct {
 	displayModePrev int
 
 	// Cover Art
-	coverArt    image.Image
-	coverMosaic mosaic.Mosaic
+	coverArt         image.Image
+	coverMosaic      mosaic.Mosaic
+	coverCols        int
+	coverRows        int
+	albumArtRenderer string // Resolved renderer: 'kitty' or 'mosaic'
+	kittyPlacedCols  int
+	kittyPlacedRows  int
 
 	// App State
 	err                error
@@ -158,7 +163,8 @@ type playQueueResultMsg struct {
 type viewStarredSongsMsg *api.SearchResult3
 
 type coverArtMsg struct {
-	img image.Image
+	img    image.Image
+	resize bool // Re-layout of the current image, not a new one
 }
 
 type createShareMsg struct {

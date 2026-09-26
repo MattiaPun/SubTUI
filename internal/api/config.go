@@ -58,11 +58,12 @@ type App struct {
 }
 
 type Theme struct {
-	DisplayAlbumArt bool     `toml:"display_album_art"`
-	Subtle          []string `toml:"subtle"`
-	Highlight       []string `toml:"highlight"`
-	Special         []string `toml:"special"`
-	Filtered        []string `toml:"filtered"`
+	DisplayAlbumArt  bool     `toml:"display_album_art"`
+	AlbumArtRenderer string   `toml:"album_art_renderer" comment:"Options: 'auto', 'kitty', 'mosaic'"`
+	Subtle           []string `toml:"subtle"`
+	Highlight        []string `toml:"highlight"`
+	Special          []string `toml:"special"`
+	Filtered         []string `toml:"filtered"`
 }
 
 type Filters struct {
@@ -168,17 +169,18 @@ type LibraryKeybinds struct {
 }
 
 type MediaKeybinds struct {
-	PlayPause         []string `toml:"play_pause"`
-	Next              []string `toml:"next"`
-	Prev              []string `toml:"prev"`
-	Shuffle           []string `toml:"shuffle"`
-	Loop              []string `toml:"loop"`
-	Restart           []string `toml:"restart"`
-	Rewind            []string `toml:"rewind"`
-	Forward           []string `toml:"forward"`
-	VolumeUp          []string `toml:"volume_up"`
-	VolumeDown        []string `toml:"volume_down"`
-	ToggleMediaPlayer []string `toml:"toggle_media_player"`
+	PlayPause              []string `toml:"play_pause"`
+	Next                   []string `toml:"next"`
+	Prev                   []string `toml:"prev"`
+	Shuffle                []string `toml:"shuffle"`
+	Loop                   []string `toml:"loop"`
+	Restart                []string `toml:"restart"`
+	Rewind                 []string `toml:"rewind"`
+	Forward                []string `toml:"forward"`
+	VolumeUp               []string `toml:"volume_up"`
+	VolumeDown             []string `toml:"volume_down"`
+	ToggleMediaPlayer      []string `toml:"toggle_media_player"`
+	ToggleAlbumArtRenderer []string `toml:"toggle_album_art_renderer"`
 }
 
 type QueueKeybinds struct {

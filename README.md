@@ -12,6 +12,7 @@ SubTUI is your next favorite lightweight, terminal-based music player for Subson
 * **Gapless Playback**: Enjoy your favorite albums exactly as intended with smooth, uninterrupted transitions
 * **MPRIS Support**: Control SubTUI from any media widget on Linux/FreeBSD
 * **Discord Integration**: Show off what you're listening to with built-in Discord Rich Presence
+* **Album Art**: Full-resolution cover art in kitty and Ghostty via the kitty graphics protocol, with a block-character fallback everywhere else. Set `album_art_renderer = 'auto' | 'kitty' | 'mosaic'` under `[theme]`, or press `i` to switch at runtime (not supported inside tmux)
 
 ![Main View](./screenshots/main_view.png)
 

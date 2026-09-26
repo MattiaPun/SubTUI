@@ -1,7 +1,9 @@
 package ui
 
 import (
+	"log"
 	"math/rand"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -224,6 +226,10 @@ func (m model) handlesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	if keyMatches(key, api.AppConfig.Keybinds.Media.ToggleMediaPlayer) {
 		return mediaToggleMediaPlayer(m), nil
+	}
+
+	if keyMatches(key, api.AppConfig.Keybinds.Media.ToggleAlbumArtRenderer) {
+		return toggleAlbumArtRenderer(m), nil
 	}
 
 	// QUEUE KEYBINDS
@@ -1217,7 +1223,8 @@ func mediaToggleMediaPlayer(m model) model {
 
 		if m.coverArt != nil {
 			resModel, _ := m.handleCoverArt(coverArtMsg{
-				img: m.coverArt,
+				img:    m.coverArt,
+				resize: true,
 			})
 			if updatedModel, ok := resModel.(model); ok {
 				m = updatedModel
@@ -1442,6 +1449,31 @@ func mediaCreateShare(m model) tea.Cmd {
 	return nil
 }
 
+func toggleAlbumArtRenderer(m model) model {
+	if m.focus == focusSearch {
+		return m
+	}
+
+	if m.albumArtRenderer == AlbumArtRendererKitty {
+		kittyDelete()
+		m.albumArtRenderer = AlbumArtRendererMosaic
+	} else {
+		m.albumArtRenderer = AlbumArtRendererKitty
+		m.kittyPlacedCols, m.kittyPlacedRows = 0, 0
+		if m.coverArt != nil {
+			kittyTransmit(m.coverArt)
+			m = m.syncKittyPlacement()
+		}
+	}
+
+	api.AppConfig.Theme.AlbumArtRenderer = m.albumArtRenderer
+	if err := api.SaveConfig(filepath.Join(api.ConfigDir, "config.toml"), api.AppConfig, 0644); err != nil {
+		log.Printf("[CONFIG] Failed to save album art renderer: %v", err)
+	}
+
+	return m
+}
+
 func toggleNotifications(m model) model {
 	if m.focus != focusSearch {
 		m.notify = !m.notify
@@ -1650,6 +1682,10 @@ func playerMenu(m model, msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// NAVIGATION KEYBINDS
 	if keyMatches(key, api.AppConfig.Keybinds.Media.ToggleMediaPlayer) || keyMatches(key, api.AppConfig.Keybinds.Global.Back) {
 		return mediaToggleMediaPlayer(m), nil
+	}
+
+	if keyMatches(key, api.AppConfig.Keybinds.Media.ToggleAlbumArtRenderer) {
+		return toggleAlbumArtRenderer(m), nil
 	}
 
 	// MEDIA KEYBINDS

@@ -44,6 +44,7 @@ func InitialModel() model {
 		helpModel:          NewHelpModel(),
 		discordRPC:         api.AppConfig.App.DiscordRPC,
 		notify:             api.AppConfig.App.Notifications,
+		albumArtRenderer:   resolveAlbumArtRenderer(api.AppConfig.Theme.AlbumArtRenderer),
 	}
 }
 

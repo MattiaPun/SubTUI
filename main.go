@@ -80,7 +80,7 @@ func main() {
 	defer player.ShutdownPlayer()
 
 	// Init TUI
-	p := tea.NewProgram(ui.InitialModel(), tea.WithAltScreen())
+	p := tea.NewProgram(ui.InitialModel(), tea.WithAltScreen(), tea.WithOutput(ui.TermOut))
 
 	// Start background services
 	instance := integration.Init(p)
@@ -96,7 +96,9 @@ func main() {
 	}
 
 	// Start TUI
-	if _, err := p.Run(); err != nil {
+	_, err := p.Run()
+	ui.KittyCleanup() // free album art from the terminal
+	if err != nil {
 		fmt.Println("Error while running program:", err)
 		player.ShutdownPlayer() // kill mpv
 		os.Exit(1)
