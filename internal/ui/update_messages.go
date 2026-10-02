@@ -253,8 +253,20 @@ func (m model) handleErr(msg errMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+func isPlaying(status player.PlayerStatus) bool {
+	return status.Path != "" &&
+		status.Path != "<nil>" &&
+		!status.Paused
+}
+
 func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
+	previousStatus := m.playerStatus
 	m.playerStatus = player.PlayerStatus(msg)
+
+	wasPlaying := isPlaying(previousStatus)
+	nowPlaying := isPlaying(m.playerStatus)
+	songChanged := previousStatus.Path != m.playerStatus.Path
+
 	var cmds []tea.Cmd
 	cmds = append(cmds, syncPlayerCmd())
 
@@ -275,6 +287,11 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 		// Clear MRPIS
 		if m.dbusInstance != nil {
 			m.dbusInstance.ClearMetadata()
+		}
+
+		// Stop Discord playback when the queue ends.
+		if m.discordRPC && m.discordInstance != nil && wasPlaying {
+			m.discordInstance.StopActivity()
 		}
 
 		// Clear album art
@@ -322,6 +339,7 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 			Artist:   currentSong.Artist,
 			Album:    currentSong.Album,
 			Duration: float64(currentSong.Duration),
+			Position: m.playerStatus.Current,
 			ImageURL: api.SubsonicCoverArtUrl(currentSong.ID, 500),
 			Rating:   math.Round(float64(currentSong.Rating*10)) / 10,
 		}
@@ -347,11 +365,6 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 			m.dbusInstance.UpdateMetadata(metadata)
 		}
 
-		// Discord Update
-		if m.discordRPC && m.discordInstance != nil {
-			m.discordInstance.UpdateActivity(metadata)
-		}
-
 		// Album Art Update
 		if api.AppConfig.Theme.DisplayAlbumArt {
 			cmds = append(cmds, getCoverArtCmd(currentSong.ID))
@@ -364,6 +377,28 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 		windowTitle := fmt.Sprintf("%s - %s", metadata.Title, metadata.Artist)
 		cmds = append(cmds, tea.SetWindowTitle(windowTitle)) // Update windows title
 		cmds = append(cmds, m.savePlayQueue())               // Server queue update
+	}
+
+	// Discord update
+	if m.discordRPC && m.discordInstance != nil {
+		switch {
+		case wasPlaying && !nowPlaying:
+			m.discordInstance.StopActivity()
+
+		case nowPlaying && (!wasPlaying || songChanged):
+			if m.queueIndex >= 0 && m.queueIndex < len(m.queue) {
+				currentSong := m.queue[m.queueIndex]
+				m.discordInstance.UpdateActivity(integration.Metadata{
+					Title:    currentSong.Title,
+					Artist:   currentSong.Artist,
+					Album:    currentSong.Album,
+					Duration: float64(currentSong.Duration),
+					Position: m.playerStatus.Current,
+					ImageURL: api.SubsonicCoverArtUrl(currentSong.ID, 500),
+					Rating:   math.Round(float64(currentSong.Rating*10)) / 10,
+				})
+			}
+		}
 	}
 
 	// Scrobble after half of the song, or 4 minutes, whichever happens first

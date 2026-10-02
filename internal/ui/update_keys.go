@@ -884,18 +884,6 @@ func mediaTogglePlay(m model, msg tea.Msg) model {
 	_, isMpris := msg.(integration.PlayPauseMsg)
 	if m.focus != focusSearch || isMpris {
 		player.TogglePause()
-		m.playerStatus.Paused = !m.playerStatus.Paused
-
-		if m.dbusInstance != nil {
-			var newStatus string
-			if m.playerStatus.Paused {
-				newStatus = "Paused"
-			} else {
-				newStatus = "Playing"
-			}
-
-			m.dbusInstance.UpdateStatus(newStatus)
-		}
 	}
 
 	return m
