@@ -13,14 +13,14 @@ type MediaPlayer2 struct {
 
 func (m *MediaPlayer2) Play() *dbus.Error {
 	if m.Program != nil {
-		m.Program.Send(PlayPauseMsg{})
+		m.Program.Send(PlayMsg{})
 	}
 	return nil
 }
 
 func (m *MediaPlayer2) Pause() *dbus.Error {
 	if m.Program != nil {
-		m.Program.Send(PlayPauseMsg{})
+		m.Program.Send(PauseMsg{})
 	}
 	return nil
 }

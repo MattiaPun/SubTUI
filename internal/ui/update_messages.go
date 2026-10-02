@@ -575,6 +575,16 @@ func (m model) handleIntegrationPlayPause(msg integration.PlayPauseMsg) (tea.Mod
 	return m, nil
 }
 
+func (m model) handleIntegrationPlay() (tea.Model, tea.Cmd) {
+	player.SetPause(false)
+	return m, nil
+}
+
+func (m model) handleIntegrationPause() (tea.Model, tea.Cmd) {
+	player.SetPause(true)
+	return m, nil
+}
+
 func (m model) handleIntegrationStop() (tea.Model, tea.Cmd) {
 	m.queue = nil
 	player.Stop()

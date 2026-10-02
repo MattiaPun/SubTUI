@@ -170,6 +170,13 @@ func UpdateNextSong(songID string) {
 	}
 }
 
+func SetPause(paused bool) {
+	if mpvClient == nil {
+		return
+	}
+	_ = mpvClient.SetProperty("pause", paused)
+}
+
 func TogglePause() {
 	if mpvClient == nil {
 		return

@@ -67,6 +67,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case integration.PlayPauseMsg:
 		return m.handleIntegrationPlayPause(msg)
 
+	case integration.PlayMsg:
+		return m.handleIntegrationPlay()
+
+	case integration.PauseMsg:
+		return m.handleIntegrationPause()
+
 	case integration.StopMsg:
 		return m.handleIntegrationStop()
 
