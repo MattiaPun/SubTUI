@@ -1234,6 +1234,7 @@ func helpViewContent() string {
 		line(keys(api.AppConfig.Keybinds.Media.VolumeUp), "Volume up"),
 		line(keys(api.AppConfig.Keybinds.Media.VolumeDown), "Volume down"),
 		line(keys(api.AppConfig.Keybinds.Media.ToggleMediaPlayer), "Media Player"),
+		line(keys(api.AppConfig.Keybinds.Other.StartRadio), "Start radio"),
 	)
 
 	queueKeybinds := section("QUEUE",

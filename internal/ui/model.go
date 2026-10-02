@@ -169,6 +169,8 @@ type getLyricsMsg struct {
 	result []api.StructuredLyrics
 }
 
+type radioResultMsg []api.Song
+
 type errMsg struct {
 	err error
 }
