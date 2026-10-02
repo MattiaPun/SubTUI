@@ -105,6 +105,7 @@ func InitPlayer() error {
 		"--gapless-audio=" + gaplessPlayback,
 		"--prefetch-playlist=yes",
 		"--replaygain=" + replayGain,
+		"--loop-file=no",
 	}
 
 	mpvCmd = exec.Command("mpv", args...)
