@@ -2,11 +2,14 @@ package ui
 
 import (
 	"fmt"
+	"image"
+	"math"
 	"strconv"
 	"strings"
 
 	"github.com/MattiaPun/SubTUI/v2/internal/api"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/mosaic"
 	zone "github.com/lrstanley/bubblezone"
 	"github.com/mattn/go-runewidth"
 
@@ -589,9 +592,9 @@ func (m model) buildMainViewBorder(width int) lipgloss.Style {
 
 	listLen := _getMainListLength(m)
 	if listLen > 0 {
-		listStatus := fmt.Sprintf(" %d/%d ", m.cursorMain + 1, listLen)
+		listStatus := fmt.Sprintf(" %d/%d ", m.cursorMain+1, listLen)
 		b := lipgloss.RoundedBorder()
-		topLeading := max(width - len(listStatus) - 2, 0)
+		topLeading := max(width-len(listStatus)-2, 0)
 		b.Top = strings.Repeat("─", topLeading) + listStatus + "──"
 		return base.Border(b)
 	}
@@ -603,7 +606,7 @@ func footerContent(m model) string {
 	var content string
 
 	if api.AppConfig.Theme.DisplayAlbumArt && m.coverArt != nil {
-		albumArt := m.coverMosaic.Render(m.coverArt)
+		albumArt := renderCoverArt(m.coverArt, footerCoverArtWidth, footerCoverArtHeight)
 		infoText := footerInformation(m, m.width-16)
 
 		content = lipgloss.JoinHorizontal(lipgloss.Left, "  ", albumArt, "  ", infoText)
@@ -866,8 +869,7 @@ func mediaPlayerSideContent(m model, width int, height int) string {
 	if showCoverArt && remainingHeight >= 3 {
 		coverArtHeight = remainingHeight - 2
 
-		coverArtStr := m.coverMosaic.Render(m.coverArt)
-		coverArtStr = lipgloss.NewStyle().MaxHeight(coverArtHeight).Render(coverArtStr)
+		coverArtStr := renderCoverArt(m.coverArt, width, coverArtHeight)
 
 		sections = append(sections, borderStyle.
 			Width(width).
@@ -1671,32 +1673,56 @@ func generateStar(m model, ID string) string {
 	return "  "
 }
 
-// Helper: Calculate album art size
-func calculateCoverArtSize(m model) (int, int) {
-	if !m.showMediaPlayer {
-		return 16, 8
+// Helper: Cover art size in the main view footer
+const (
+	footerCoverArtWidth  = 8
+	footerCoverArtHeight = 4
+)
+
+// Helper: Render the cover art as a pixelated mosaic that fills as much of the
+// given terminal cell box as possible, preserving the image aspect ratio.
+func renderCoverArt(img image.Image, maxWidth int, maxHeight int) string {
+	if img == nil || maxWidth < 1 || maxHeight < 1 {
+		return ""
 	}
 
-	maxWidth := int(float64(m.width) * 0.4)
-	maxHeight := m.height - 3 - 14 - 9 - 2 // 3: progress bar | 14: media info | 9: queue | 2: cover art borders
+	width, height := coverArtCellSize(img, maxWidth, maxHeight)
 
-	// Try to fill vertically
+	// Mosaic renders one terminal cell per 2x2 source pixels, so sizes are
+	// given in pixels rather than cells. It also terminates every row with a
+	// newline; drop the trailing one so the art has no blank bottom row.
+	coverMosaic := mosaic.New().Width(width * 2).Height(height * 2)
+	return strings.TrimSuffix(coverMosaic.Render(img), "\n")
+}
+
+// Helper: Largest terminal cell box (columns, rows) fitting into maxWidth x
+// maxHeight while keeping the aspect ratio of the source image.
+func coverArtCellSize(img image.Image, maxWidth int, maxHeight int) (int, int) {
+	if maxWidth < 1 {
+		maxWidth = 1
+	}
+	if maxHeight < 1 {
+		maxHeight = 1
+	}
+
+	bounds := img.Bounds()
+	srcWidth, srcHeight := bounds.Dx(), bounds.Dy()
+	if srcWidth <= 0 || srcHeight <= 0 {
+		return maxWidth, maxHeight
+	}
+
+	// Terminal cells are roughly twice as tall as wide, so one output cell
+	// covers two source pixels in both directions.
 	width := maxWidth
-	height := width / 2
+	height := int(math.Round(float64(width) * float64(srcHeight) / float64(srcWidth) / 2))
 
-	// If too high, try to fill horizontally
 	if height > maxHeight {
 		height = maxHeight
-		width = height * 2
+		width = int(math.Round(float64(height) * 2 * float64(srcWidth) / float64(srcHeight)))
 	}
 
-	// Safeguard: minimum sizes
-	if width < 2 {
-		width = 2
-	}
-	if height < 1 {
-		height = 1
-	}
+	width = max(1, min(width, maxWidth))
+	height = max(1, min(height, maxHeight))
 
 	return width, height
 }

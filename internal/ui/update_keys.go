@@ -1197,20 +1197,7 @@ func mediaSeekForward(m model) model {
 
 func mediaToggleMediaPlayer(m model) model {
 	if m.focus != focusSearch {
-		if m.showMediaPlayer {
-			m.showMediaPlayer = false
-		} else {
-			m.showMediaPlayer = true
-		}
-
-		if m.coverArt != nil {
-			resModel, _ := m.handleCoverArt(coverArtMsg{
-				img: m.coverArt,
-			})
-			if updatedModel, ok := resModel.(model); ok {
-				m = updatedModel
-			}
-		}
+		m.showMediaPlayer = !m.showMediaPlayer
 	}
 
 	return m

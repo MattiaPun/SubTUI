@@ -14,7 +14,6 @@ import (
 	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/x/mosaic"
 	"github.com/gen2brain/beeep"
 	zone "github.com/lrstanley/bubblezone"
 )
@@ -24,18 +23,6 @@ const doubleClickThreshold = 500 * time.Millisecond
 func (m model) handleWindowResize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 	m.width = msg.Width
 	m.height = msg.Height
-
-	if m.showMediaPlayer {
-
-		if m.coverArt != nil {
-			resModel, _ := m.handleCoverArt(coverArtMsg{
-				img: m.coverArt,
-			})
-			if updatedModel, ok := resModel.(model); ok {
-				m = updatedModel
-			}
-		}
-	}
 
 	return m, nil
 }
@@ -503,10 +490,7 @@ func (m model) handleViewStarredSongs(msg viewStarredSongsMsg) (tea.Model, tea.C
 }
 
 func (m model) handleCoverArt(msg coverArtMsg) (tea.Model, tea.Cmd) {
-	width, height := calculateCoverArtSize(m)
-
 	m.coverArt = msg.img
-	m.coverMosaic = mosaic.New().Width(width).Height(height)
 	return m, nil
 }
 
