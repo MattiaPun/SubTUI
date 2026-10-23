@@ -25,6 +25,7 @@ type Config struct {
 	App      App      `toml:"app"`
 	Theme    Theme    `toml:"theme" comment:"Format: ['Light color', 'Dark color']"`
 	Filters  Filters  `toml:"filters"`
+	Cache    Cache    `toml:"cache"`
 	Keybinds Keybinds `toml:"keybinds"`
 	Columns  Columns  `toml:"columns"`
 }
@@ -63,6 +64,23 @@ type Theme struct {
 	Highlight       []string `toml:"highlight"`
 	Special         []string `toml:"special"`
 	Filtered        []string `toml:"filtered"`
+}
+
+type Cache struct {
+	CoverArt CacheCoverArt `toml:"cover_art"`
+	Lyrics   CacheLyrics   `toml:"lyrics"`
+}
+
+type CacheCoverArt struct {
+	Enabled   bool   `toml:"enabled"`
+	Dir       string `toml:"dir" comment:"Empty uses the user cache directory"`
+	MaxSizeMB int    `toml:"max_size_mb" comment:"Upper bound for cached cover art on disk, 0 disables the disk cache"`
+}
+
+type CacheLyrics struct {
+	Enabled   bool   `toml:"enabled"`
+	Dir       string `toml:"dir" comment:"Empty uses the user cache directory"`
+	MaxSizeMB int    `toml:"max_size_mb" comment:"Upper bound for cached lyrics on disk, 0 disables the disk cache"`
 }
 
 type Filters struct {
@@ -153,7 +171,7 @@ type SearchKeybinds struct {
 }
 
 type LibraryKeybinds struct {
-	AddToPlaylist 	    []string `toml:"add_to_playlist"`
+	AddToPlaylist       []string `toml:"add_to_playlist"`
 	AddRating           []string `toml:"add_rating"`
 	GoToAlbum           []string `toml:"go_to_album"`
 	GoToArtist          []string `toml:"go_to_artist"`

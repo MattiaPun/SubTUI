@@ -14,6 +14,17 @@ highlight          = ['#874BFD', '#7D56F4']
 special            = ['#43BF6D', '#73F59F']
 filtered           = ['#A9A9A9', '#555555']
 
+[cache]
+  [cache.cover_art]
+  enabled     = true # Cache downloaded cover art
+  dir         = '' # Empty: <user cache dir>/subtui/covers
+  max_size_mb = 256 # Upper bound for cached files on disk, 0 disables the disk cache
+
+  [cache.lyrics]
+  enabled     = true # Cache fetched lyrics
+  dir         = '' # Empty: <user cache dir>/subtui/lyrics
+  max_size_mb = 32 # Upper bound for cached files on disk, 0 disables the disk cache
+
 [filters]
 titles = [] # Exclude songs with titles containing these strings
 artists = [] # Exclude songs by these artists

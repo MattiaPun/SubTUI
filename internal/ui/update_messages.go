@@ -367,12 +367,15 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 
 		// Album Art Update
 		if api.AppConfig.Theme.DisplayAlbumArt {
-			cmds = append(cmds, getCoverArtCmd(currentSong.ID))
+			cmds = append(cmds, getCoverArtCmd(currentSong.CoverArtID()))
 		}
 
 		// Lyrics Update/reset
 		cmds = append(cmds, getLyricsCmd(currentSong.ID))
 		m.songLinesOffset = 0
+
+		// Warm the caches for the next track while this one plays.
+		cmds = append(cmds, m.prefetchNextTrackCmd())
 
 		windowTitle := fmt.Sprintf("%s - %s", metadata.Title, metadata.Artist)
 		cmds = append(cmds, tea.SetWindowTitle(windowTitle)) // Update windows title

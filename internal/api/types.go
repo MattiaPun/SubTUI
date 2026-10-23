@@ -96,6 +96,7 @@ type Song struct {
 	AlbumArtists []Artist `json:"albumArtists"`
 	Album        string   `json:"album"`
 	AlbumID      string   `json:"albumId"`
+	CoverArt     string   `json:"coverArt"`
 	Duration     int      `json:"duration"`
 	Rating       int      `json:"userRating"`
 	Genre        string   `json:"genre"`
@@ -106,6 +107,16 @@ type Song struct {
 	TrackNumber  int      `json:"track"`
 	DiscNumber   int      `json:"discNumber"`
 	Filtered     bool
+}
+
+// CoverArtID returns the id used to request this song's artwork. Servers that
+// do not report a dedicated cover art id fall back to the song id.
+func (s Song) CoverArtID() string {
+	if s.CoverArt != "" {
+		return s.CoverArt
+	}
+
+	return s.ID
 }
 
 // Sort modes for songs inside a playlist
