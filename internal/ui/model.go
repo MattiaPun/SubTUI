@@ -91,6 +91,10 @@ type model struct {
 	pageOffset      int
 	pageHasMore     bool
 
+	// Live search: typing schedules a debounced search, the sequence number
+	// discards timers that belong to an older query.
+	liveSearchSeq int
+
 	// Song sort mode (in a playlist)
 	songSortBy  int
 	songSortAsc bool
@@ -153,6 +157,12 @@ type starredResultMsg struct {
 
 type playQueueResultMsg struct {
 	result *api.PlayQueue
+}
+
+// liveSearchTickMsg fires after the typing pause that ends a live search.
+type liveSearchTickMsg struct {
+	query string
+	seq   int
 }
 
 type viewStarredSongsMsg *api.SearchResult3

@@ -61,6 +61,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case playQueueResultMsg:
 		return m.handlePlayQueueResult(msg)
 
+	case liveSearchTickMsg:
+		return m.handleLiveSearchTick(msg)
+
 	case SetDBusMsg:
 		return m.handleSetDBUS(msg)
 

@@ -4,6 +4,7 @@ import (
 	"math/rand"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/MattiaPun/SubTUI/v2/internal/api"
 	"github.com/MattiaPun/SubTUI/v2/internal/integration"
@@ -287,8 +288,32 @@ func keyMatches(key string, bindings []string) bool {
 
 func typeInput(m model, msg tea.Msg) (model, tea.Cmd) {
 	var cmd tea.Cmd
+	previous := m.textInput.Value()
 	m.textInput, cmd = m.textInput.Update(msg)
-	return m, cmd
+
+	return m, tea.Batch(cmd, m.scheduleLiveSearch(previous))
+}
+
+// scheduleLiveSearch queues a debounced search when the query changed. Every
+// keystroke bumps the sequence number, so only the timer of the latest query
+// actually runs a search.
+func (m *model) scheduleLiveSearch(previous string) tea.Cmd {
+	query := m.textInput.Value()
+	if query == previous {
+		return nil
+	}
+
+	m.liveSearchSeq++
+
+	if len([]rune(query)) < liveSearchMinChars {
+		return nil
+	}
+
+	seq := m.liveSearchSeq
+
+	return tea.Tick(liveSearchDelay, func(time.Time) tea.Msg {
+		return liveSearchTickMsg{query: query, seq: seq}
+	})
 }
 
 func hardQuit(m model) (tea.Model, tea.Cmd) {
@@ -341,6 +366,9 @@ func enter(m model) (tea.Model, tea.Cmd) {
 			m.pageOffset = 0
 			m.pageHasMore = true
 			m.lastSearchQuery = query
+
+			// The explicit search replaces any pending live search.
+			m.liveSearchSeq++
 
 			// Reset selection
 			m = resetSelection(m)

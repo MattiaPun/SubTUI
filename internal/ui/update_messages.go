@@ -21,6 +21,13 @@ import (
 
 const doubleClickThreshold = 500 * time.Millisecond
 
+const (
+	// liveSearchDelay is the pause in typing after which a search is sent.
+	liveSearchDelay = 300 * time.Millisecond
+	// liveSearchMinChars avoids querying the server for single letters.
+	liveSearchMinChars = 2
+)
+
 func (m model) handleWindowResize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 	m.width = msg.Width
 	m.height = msg.Height
@@ -259,6 +266,43 @@ func isPlaying(status player.PlayerStatus) bool {
 		!status.Paused
 }
 
+// focusAfterSearch moves the focus to the result list for an explicit search.
+// A live search leaves the focus in the search field, otherwise the user could
+// not keep typing while results stream in.
+func (m model) focusAfterSearch() model {
+	if m.focus != focusSearch {
+		m.focus = focusMain
+	}
+
+	return m
+}
+
+// handleLiveSearchTick runs the debounced search for a recent query. Timers of
+// older keystrokes and of queries that were edited in the meantime are dropped.
+func (m model) handleLiveSearchTick(msg liveSearchTickMsg) (tea.Model, tea.Cmd) {
+	if msg.seq != m.liveSearchSeq || msg.query != m.textInput.Value() {
+		return m, nil
+	}
+
+	m.loading = true
+	m.viewMode = viewList
+	m.pageOffset = 0
+	m.pageHasMore = true
+	m.lastSearchQuery = msg.query
+	m = resetSelection(m)
+
+	switch m.filterMode {
+	case filterSongs:
+		m.displayMode = displaySongs
+	case filterAlbums:
+		m.displayMode = displayAlbums
+	case filterArtist:
+		m.displayMode = displayArtist
+	}
+
+	return m, searchCmd(msg.query, m.filterMode, 0)
+}
+
 func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 	previousStatus := m.playerStatus
 	m.playerStatus = player.PlayerStatus(msg)
@@ -424,7 +468,7 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 
 func (m model) handleSongResult(msg songsResultMsg) (tea.Model, tea.Cmd) {
 	m.loading = false
-	m.focus = focusMain
+	m = m.focusAfterSearch()
 
 	songs := applyExclusionFilters(m, msg.songs)
 
@@ -446,7 +490,7 @@ func (m model) handleSongResult(msg songsResultMsg) (tea.Model, tea.Cmd) {
 
 func (m model) handleAlbumResult(msg albumsResultMsg) (tea.Model, tea.Cmd) {
 	m.loading = false
-	m.focus = focusMain
+	m = m.focusAfterSearch()
 	m.pageHasMore = (len(msg.albums) == 150)
 
 	if m.pageOffset > 0 { // Append: paging
@@ -462,7 +506,7 @@ func (m model) handleAlbumResult(msg albumsResultMsg) (tea.Model, tea.Cmd) {
 
 func (m model) handleArtistsResult(msg artistsResultMsg) (tea.Model, tea.Cmd) {
 	m.loading = false
-	m.focus = focusMain
+	m = m.focusAfterSearch()
 	m.pageHasMore = (len(msg.artists) == 150)
 
 	if m.pageOffset > 0 { // Append: paging
