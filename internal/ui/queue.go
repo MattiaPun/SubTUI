@@ -23,6 +23,17 @@ func (m *model) playQueueIndex(index int, startPaused bool) tea.Cmd {
 	m.queueIndex = index
 	song := m.queue[m.queueIndex]
 
+	// Drop the previous track's lyrics as soon as the switch starts, and
+	// fetch the new ones while the song is still loading.
+	var lyricsCmd tea.Cmd
+	if m.lyricsSongID != song.ID {
+		m.lyricsSongID = song.ID
+		m.songLyrics = nil
+		m.songLinesOffset = 0
+		m.lyricsLoading = true
+		lyricsCmd = getLyricsCmd(song.ID)
+	}
+
 	playCmd := func() tea.Msg {
 		err := player.PlaySong(song.ID, startPaused)
 		if err != nil {
@@ -48,6 +59,7 @@ func (m *model) playQueueIndex(index int, startPaused bool) tea.Cmd {
 	return tea.Batch(
 		playCmd,
 		m.savePlayQueue(),
+		lyricsCmd,
 	)
 }
 

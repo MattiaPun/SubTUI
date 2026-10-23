@@ -107,6 +107,8 @@ type model struct {
 	// Lyrics
 	songLyrics      []api.StructuredLyrics
 	songLinesOffset int
+	lyricsSongID    string
+	lyricsLoading   bool
 }
 
 type HelpModel struct {
@@ -166,6 +168,7 @@ type createShareMsg struct {
 }
 
 type getLyricsMsg struct {
+	id     string
 	result []api.StructuredLyrics
 }
 

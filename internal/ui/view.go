@@ -1037,7 +1037,9 @@ func mediaPlayerLyricsContent(m model, width int, height int) string {
 	var finalLyrics string
 	var currentLineId int
 
-	if len(m.songLyrics) != 0 && len(m.songLyrics[0].Lines) > 0 { // Lyrics found
+	if m.lyricsLoading { // Lyrics are still being fetched
+		visibleLines = append(visibleLines, subtleStyle.Render("\nFetching lyrics..."))
+	} else if len(m.songLyrics) != 0 && len(m.songLyrics[0].Lines) > 0 { // Lyrics found
 		if m.songLyrics[0].Synced { // Display synced lyrics
 			// Pre-process all lines with styles
 			var renderedLines []string

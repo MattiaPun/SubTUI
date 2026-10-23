@@ -223,15 +223,17 @@ func createMediaShareCmd(ids []string) tea.Cmd {
 
 func getLyricsCmd(ID string) tea.Cmd {
 	return func() tea.Msg {
-		if ID != "" {
-			result, err := api.SubsonicGetLyrics(ID)
-
-			if err != nil {
-				return errMsg{err}
-			}
-			return getLyricsMsg{result}
+		if ID == "" {
+			return nil
 		}
 
-		return nil
+		result, err := api.SubsonicGetLyrics(ID)
+		if err != nil {
+			// Report the failed request as an empty result so the lyrics pane
+			// stops waiting for it instead of showing the loading state forever.
+			return getLyricsMsg{id: ID}
+		}
+
+		return getLyricsMsg{id: ID, result: result}
 	}
 }

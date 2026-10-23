@@ -300,10 +300,10 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 		}
 
 		// Clear lyrics
+		m.songLyrics = nil
 		m.songLinesOffset = 0
-		if len(m.songLyrics) > 0 {
-			m.songLyrics[0].Lines = []api.LyricLine{}
-		}
+		m.lyricsSongID = ""
+		m.lyricsLoading = false
 
 		cmds = append(cmds, tea.SetWindowTitle("SubTUI"))
 		return m, tea.Batch(cmds...)
@@ -371,8 +371,13 @@ func (m model) handleStatus(msg statusMsg) (tea.Model, tea.Cmd) {
 		}
 
 		// Lyrics Update/reset
-		cmds = append(cmds, getLyricsCmd(currentSong.ID))
-		m.songLinesOffset = 0
+		if m.lyricsSongID != currentSong.ID {
+			m.songLyrics = nil
+			m.songLinesOffset = 0
+			m.lyricsSongID = currentSong.ID
+			m.lyricsLoading = true
+			cmds = append(cmds, getLyricsCmd(currentSong.ID))
+		}
 
 		windowTitle := fmt.Sprintf("%s - %s", metadata.Title, metadata.Artist)
 		cmds = append(cmds, tea.SetWindowTitle(windowTitle)) // Update windows title
@@ -547,7 +552,14 @@ func (m model) handleCreateShare(msg createShareMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) handleLyrics(msg getLyricsMsg) (tea.Model, tea.Cmd) {
+	// A track change can happen while its lyrics are still being fetched, so
+	// late responses for a previous song must not overwrite the current pane.
+	if msg.id != m.lyricsSongID {
+		return m, nil
+	}
+
 	m.songLyrics = msg.result
+	m.lyricsLoading = false
 	return m, nil
 }
 
